@@ -10,6 +10,9 @@ func main() {
 
 // todo:
 	// noaa api
+		// get gridpoint
+		// get weather
+		// convert into normalized struct
 	// visualcrossing (free version for now)
 	// theglobalweather (test with free(?), or sign up, cheap per call)
 
