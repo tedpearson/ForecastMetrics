@@ -1,10 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/go-errors/errors"
+)
 
 func main() {
-	fmt.Printf("hello world\n")
-	GetWeather("38.7541","-77.3454")
+	err := GetWeather("38.7541","-77.3454")
+	if err != nil {
+		// todo: only call ErrorStack if it's an errors error. Look at docs.
+		fmt.Println(err.(*errors.Error).ErrorStack())
+	}
 }
 
 
