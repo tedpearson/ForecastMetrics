@@ -1,4 +1,4 @@
-package main
+package nws
 
 import (
 	"github.com/stretchr/testify/assert"

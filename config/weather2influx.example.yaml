@@ -1,0 +1,20 @@
+locations:
+  - name: Washington Monument
+    latitude: 38.8895
+    longitude: -77.0352
+
+influxdb:
+  host: http://localhost:8086
+  user: user
+  password: password
+  database: forecast
+
+forecast:
+  measurement_name: forecast
+  history:
+    enabled: no
+    retention_policy: history_rp
+    measurement_name: forecast_history
+  sources:
+    - nws
+  http_cache_dir: /tmp/weather2influxdb-cache
