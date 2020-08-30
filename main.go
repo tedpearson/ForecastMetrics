@@ -102,3 +102,5 @@ type Config struct {
 //  theglobalweather (test with free(?), or sign up, cheap per call)
 //  authentication as needed
 //  make api call[s] and get results
+//  add error handling for things like bad response from api, no points receieved, bad data
+//  (e.g. massively negative apparent temp on datapoints with no other data)
