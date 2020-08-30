@@ -12,18 +12,19 @@ sources in InfluxDB.
 
 ## Usage:
 
-### Binary
+### Either... Install a binary
 - Download a binary from the latest [Release][release]
 - `chmod +x` the binary
-- Create a config file referencing the [example][config-example]
-- Place the config in `./config`, `.` or `/usr/local/etc`
-- `./weather2influxdb`
 
-### From source
+### Or... Build from source
 - Clone this repo
 - [Install Go][install-go]
 - `cd weather2influxdb`
 - `go build`
+
+### To run:
+- Create a config file referencing the [example][config-example]
+- Place the config in `./config`, `.` or `/usr/local/etc`
 - `./weather2influxdb`
 
 ### Rationale behind included/planned sources:
