@@ -21,7 +21,7 @@ var (
 )
 
 func main() {
-	viper.SetConfigName("weather2influx")
+	viper.SetConfigName("weather2influxdb")
 	viper.AddConfigPath("/usr/local/etc")
 	viper.AddConfigPath("config")
 	viper.AddConfigPath(".")

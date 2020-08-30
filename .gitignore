@@ -1,3 +1,4 @@
 .idea
 *.iml
-weather2influx.yaml
+weather2influxdb.yaml
+/weather2influxdb
