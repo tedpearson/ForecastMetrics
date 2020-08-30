@@ -10,6 +10,21 @@ sources in InfluxDB.
 - visualcrossing.com
 - theglobalweather.com (pay-as-you-go version of weatherapi.com)
 
+## Usage:
+
+### Binary
+- Download a binary from the latest [Release][release]
+- `chmod +x` the binary
+- Create a config file referencing the [example][config-example]
+- Place the config in `./config`, `.` or `/usr/local/etc`
+- `./weather2influxdb`
+
+### From source
+- Clone this repo
+- [Install Go][install-go]
+- `cd weather2influxdb`
+- `go build`
+- `./weather2influxdb`
 
 ### Rationale behind included/planned sources:
 I was looking for a replacement for DarkSky, who were bought by
@@ -43,3 +58,7 @@ large amounts for my personal forecast dashboard is just silly.
 ### TBD:
 - attach screenshots of my forecast dashboards
 - Implement future sources list
+
+[release]: https://github.com/tedpearson/weather2influxdb/releases
+[config-example]: https://github.com/tedpearson/weather2influxdb/blob/master/config/weather2influxdb.example.yaml
+[install-go]: https://golang.org/dl/
