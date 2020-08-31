@@ -53,9 +53,9 @@ func makePoint(record weather.Record, options WriteOptions) *write.Point {
 	e := reflect.ValueOf(record)
 	p := influxdb2.NewPointWithMeasurement(options.MeasurementName).
 		AddTag("source", options.ForecastSource).
+		AddTag("location", options.Location).
 		SetTime(record.Time).
-		AddField("forecast_time", options.ForecastTime).
-		AddField("location", options.Location)
+		AddField("forecast_time", options.ForecastTime)
 	time.Now().UnixNano()
 	for i := 0; i < e.NumField(); i++ {
 		name := strcase.ToSnake(e.Type().Field(i).Name)
