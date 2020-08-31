@@ -2,7 +2,7 @@ package weather
 
 import "time"
 
-type ForecastRecord struct {
+type Record struct {
 	Time                     time.Time
 	Temperature              float64
 	Dewpoint                 float64
@@ -18,5 +18,49 @@ type ForecastRecord struct {
 }
 
 type Forecaster interface {
-	GetWeather(string, string, string) ([]ForecastRecord, error)
+	GetWeather(lat, string, lon string, cachePath string) ([]Record, error)
+}
+
+func SetTemperature(r *Record, v float64) {
+	r.Temperature = v
+}
+
+func SetDewpoint(r *Record, v float64) {
+	r.Dewpoint = v
+}
+
+func SetFeelsLike(r *Record, v float64) {
+	r.FeelsLike = v
+}
+
+func SetSkyCover(r *Record, v float64) {
+	r.SkyCover = v
+}
+
+func SetWindDirection(r *Record, v float64) {
+	r.WindDirection = int(v)
+}
+
+func SetWindSpeed(r *Record, v float64) {
+	r.WindSpeed = v
+}
+
+func SetWindGust(r *Record, v float64) {
+	r.WindGust = v
+}
+
+func SetPrecipitationProbability(r *Record, v float64) {
+	r.PrecipitationProbability = v
+}
+
+func SetPreciptationAmount(r *Record, v float64) {
+	r.PrecipitationAmount = v
+}
+
+func SetSnowAmount(r *Record, v float64) {
+	r.SnowAmount = v
+}
+
+func SetIceAmount(r *Record, v float64) {
+	r.IceAmount = v
 }

@@ -35,7 +35,7 @@ func New(config Config) Writer {
 	return Writer{influxdb2.NewClient(config.Host, config.User+":"+config.Password)}
 }
 
-func (w *Writer) WriteMeasurements(options WriteOptions, measurements []weather.ForecastRecord) error {
+func (w *Writer) WriteMeasurements(options WriteOptions, measurements []weather.Record) error {
 	log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(measurements), options.MeasurementName,
 		options.ForecastSource)
 	writeApi := w.client.WriteAPIBlocking("", options.Bucket)
@@ -49,7 +49,7 @@ func (w *Writer) WriteMeasurements(options WriteOptions, measurements []weather.
 	return nil
 }
 
-func makePoint(record weather.ForecastRecord, options WriteOptions) *write.Point {
+func makePoint(record weather.Record, options WriteOptions) *write.Point {
 	e := reflect.ValueOf(record)
 	p := influxdb2.NewPointWithMeasurement(options.MeasurementName).
 		AddTag("source", options.ForecastSource).
