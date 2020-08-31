@@ -18,7 +18,7 @@ type Record struct {
 }
 
 type Forecaster interface {
-	GetWeather(lat, string, lon string, cachePath string) ([]Record, error)
+	GetWeather(lat string, lon string, cachePath string) ([]Record, error)
 }
 
 func SetTemperature(r *Record, v float64) {
