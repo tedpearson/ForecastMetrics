@@ -104,6 +104,5 @@ type Config struct {
 //  add error handling for things like bad response from api, no points receieved, bad data
 //   specifically, figure out why sometimes there are zero points from nws
 //  (e.g. massively negative apparent temp on datapoints with no other data)
-//  test out dashboard with nws data
 //  build ci and releases in github actions
 //  test coverage
