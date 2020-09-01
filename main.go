@@ -99,3 +99,4 @@ type Config struct {
 //  (e.g. massively negative apparent temp on datapoints with no other data)
 //  build ci and releases in github actions
 //  test coverage
+//  embed build version in binary: https://blog.kowalczyk.info/article/vEja/embedding-build-number-in-go-executable.html
