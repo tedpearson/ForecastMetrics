@@ -9,11 +9,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rickb777/date/period"
 	"github.com/tedpearson/weather2influxdb/convert"
+	"github.com/tedpearson/weather2influxdb/http"
 	"github.com/tedpearson/weather2influxdb/weather"
 	"io"
 	"log"
 	"math"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -28,36 +28,30 @@ func (n NWS) GetWeather(lat string, lon string, cachePath string) ([]weather.Rec
 
 	//client := httpcache.NewMemoryCacheTransport().Client()
 	log.Println("Looking up NWS location")
-	body, err := makeRequest(url, client)
+
+	off := backoff.NewExponentialBackOff()
+	off.MaxElapsedTime = 22 * time.Second
+	body1, err := http.RetryRequest(url, client, off)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	defer cleanup(body)
+	defer cleanup(body1)
 	var jsonResponse map[string]interface{}
-	err = json.NewDecoder(body).Decode(&jsonResponse)
+	err = json.NewDecoder(body1).Decode(&jsonResponse)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	gridpointUrl := jsonResponse["properties"].(map[string]interface{})["forecastGridData"].(string)
 	// okay we have a gridpoint url. get it and turn it into an object and do fun things with it
-	log.Println("Getting NWS forecast with retry")
-	getForecast := func () error {
-		body, err = makeRequest(gridpointUrl, client)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	b := backoff.NewExponentialBackOff()
-	b.MaxElapsedTime = 22 * time.Second
-	err = backoff.Retry(getForecast, b)
+	log.Println("Getting NWS forecast")
+	body2, err := http.RetryRequest(gridpointUrl, client, off)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	defer cleanup(body2)
 
-	defer cleanup(body)
 	var forecast nwsForecast
-	err = json.NewDecoder(body).Decode(&forecast)
+	err = json.NewDecoder(body2).Decode(&forecast)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -67,25 +61,6 @@ func (n NWS) GetWeather(lat string, lon string, cachePath string) ([]weather.Rec
 		return nil, errors.WithStack(err)
 	}
 	return records, nil
-}
-
-func makeRequest(url string, client *http.Client) (io.ReadCloser, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, backoff.Permanent(err)
-	}
-	// user-agent required by weather.gov with email
-	req.Header.Set("User-Agent", "https://github.com/tedpearson/weather2influxdb by ted@tedpearson.com")
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, backoff.Permanent(err)
-	}
-	if resp.StatusCode != 200 {
-		msg := fmt.Sprintf("Error status %d: %s", resp.StatusCode, resp.Status)
-		log.Println(msg)
-		return nil, errors.New(msg)
-	}
-	return resp.Body, nil
 }
 
 func transformForecast(forecast nwsForecast) ([]weather.Record, error) {
