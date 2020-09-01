@@ -16,7 +16,7 @@ var (
 		"nws": nws.NWS{},
 	}
 	// if this ever becomes a long running process, move this into RunForecast().
-	forecastTime = time.Now().Truncate(time.Minute).Unix() * 1000
+	forecastTime = time.Now().Truncate(time.Hour).Unix() * 1000
 )
 
 func main() {
