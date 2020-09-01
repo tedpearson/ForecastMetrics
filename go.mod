@@ -3,7 +3,6 @@ module github.com/tedpearson/weather2influxdb
 go 1.15
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/go-errors/errors v1.1.1
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/iancoleman/strcase v0.1.1

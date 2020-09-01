@@ -3,7 +3,6 @@ package nws
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-errors/errors"
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
@@ -11,7 +10,6 @@ import (
 	"github.com/tedpearson/weather2influxdb/convert"
 	"github.com/tedpearson/weather2influxdb/weather"
 	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -27,8 +25,7 @@ func (n NWS) GetWeather(lat string, lon string, cachePath string) ([]weather.Rec
 	// find gridpoint
 	url := fmt.Sprintf("https://api.weather.gov/points/%s,%s", lat, lon)
 	cache := diskcache.New(cachePath)
-	transport := httpcache.NewTransport(cache)
-	client := transport.Client()
+	client := httpcache.NewTransport(cache).Client()
 	//client := httpcache.NewMemoryCacheTransport().Client()
 	log.Println("Looking up NWS location")
 	body, err := makeRequest(url, client)
@@ -50,13 +47,7 @@ func (n NWS) GetWeather(lat string, lon string, cachePath string) ([]weather.Rec
 	}
 	defer cleanup(body)
 	var forecast NwsForecast
-	// todo: remove this
-	contents, err := ioutil.ReadAll(body)
-	if err != nil {
-		return nil, errors.New(err)
-	}
-	//err = json.NewDecoder(body).Decode(&forecast)
-	err = json.Unmarshal(contents, &forecast)
+	err = json.NewDecoder(body).Decode(&forecast)
 	if err != nil {
 		return nil, errors.New(err)
 	}
@@ -64,13 +55,6 @@ func (n NWS) GetWeather(lat string, lon string, cachePath string) ([]weather.Rec
 	records, err := transformForecast(forecast)
 	if err != nil {
 		return nil, errors.New(err)
-	}
-	if len(records) == 0 {
-		log.Println("Error: found no records, printing debug info")
-		spew.Dump("decoded json: ", forecast)
-		spew.Dump("forecast response: ", string(contents))
-		bytes, okay := transport.Cache.Get(gridpointUrl)
-		spew.Dump("cached value: ", okay, string(bytes))
 	}
 	return records, nil
 }
