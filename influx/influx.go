@@ -2,10 +2,10 @@ package influx
 
 import (
 	"context"
-	"github.com/go-errors/errors"
 	"github.com/iancoleman/strcase"
 	"github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
+	"github.com/pkg/errors"
 	"github.com/tedpearson/weather2influxdb/weather"
 	"log"
 	"reflect"
@@ -43,7 +43,7 @@ func (w *Writer) WriteMeasurements(options WriteOptions, measurements []weather.
 		point := makePoint(measurement, options)
 		err := writeApi.WritePoint(context.Background(), point)
 		if err != nil {
-			return errors.New(err)
+			return errors.WithStack(err)
 		}
 	}
 	return nil

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/go-errors/errors"
 	"github.com/spf13/viper"
 	"github.com/tedpearson/weather2influxdb/influx"
 	"github.com/tedpearson/weather2influxdb/nws"
@@ -66,13 +65,7 @@ func RunForecast(config Config, source string, location Location, writer influx.
 
 func handleError(err error) {
 	if err != nil {
-		switch err.(type) {
-		case *errors.Error:
-			// todo: only call ErrorStack if it's an errors error. Look at docs.
-			log.Fatalf("Error, exiting: %v", err.(*errors.Error).ErrorStack())
-		default:
-			log.Fatalf("Error, exiting: %v", err)
-		}
+		log.Fatalf("Error, exiting: %+v", err)
 	}
 }
 

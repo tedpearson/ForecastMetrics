@@ -3,9 +3,10 @@ package nws
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/go-errors/errors"
+	"github.com/cenkalti/backoff/v3"
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
+	"github.com/pkg/errors"
 	"github.com/rickb777/date/period"
 	"github.com/tedpearson/weather2influxdb/convert"
 	"github.com/tedpearson/weather2influxdb/weather"
@@ -19,42 +20,51 @@ import (
 
 type NWS struct{}
 
-// talk to nws api and get results
-
 func (n NWS) GetWeather(lat string, lon string, cachePath string) ([]weather.Record, error) {
 	// find gridpoint
 	url := fmt.Sprintf("https://api.weather.gov/points/%s,%s", lat, lon)
 	cache := diskcache.New(cachePath)
 	client := httpcache.NewTransport(cache).Client()
+
 	//client := httpcache.NewMemoryCacheTransport().Client()
 	log.Println("Looking up NWS location")
 	body, err := makeRequest(url, client)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, errors.WithStack(err)
 	}
 	defer cleanup(body)
 	var jsonResponse map[string]interface{}
 	err = json.NewDecoder(body).Decode(&jsonResponse)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, errors.WithStack(err)
 	}
 	gridpointUrl := jsonResponse["properties"].(map[string]interface{})["forecastGridData"].(string)
 	// okay we have a gridpoint url. get it and turn it into an object and do fun things with it
-	log.Println("Getting NWS forecast")
-	body, err = makeRequest(gridpointUrl, client)
-	if err != nil {
-		return nil, errors.New(err)
+	log.Println("Getting NWS forecast with retry")
+	getForecast := func () error {
+		body, err = makeRequest(gridpointUrl, client)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = 22 * time.Second
+	err = backoff.Retry(getForecast, b)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
 	defer cleanup(body)
-	var forecast NwsForecast
+	var forecast nwsForecast
 	err = json.NewDecoder(body).Decode(&forecast)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, errors.WithStack(err)
 	}
 
 	records, err := transformForecast(forecast)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, errors.WithStack(err)
 	}
 	return records, nil
 }
@@ -62,20 +72,25 @@ func (n NWS) GetWeather(lat string, lon string, cachePath string) ([]weather.Rec
 func makeRequest(url string, client *http.Client) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, backoff.Permanent(err)
 	}
 	// user-agent required by weather.gov with email
 	req.Header.Set("User-Agent", "https://github.com/tedpearson/weather2influxdb by ted@tedpearson.com")
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, backoff.Permanent(err)
+	}
+	if resp.StatusCode != 200 {
+		msg := fmt.Sprintf("Error status %d: %s", resp.StatusCode, resp.Status)
+		log.Println(msg)
+		return nil, errors.New(msg)
 	}
 	return resp.Body, nil
 }
 
-func transformForecast(forecast NwsForecast) ([]weather.Record, error) {
+func transformForecast(forecast nwsForecast) ([]weather.Record, error) {
 	props := forecast.Properties
-	var table = []Transformation{
+	var table = []transformation{
 		{
 			measurements: props.Temperature,
 			setter:       weather.SetTemperature,
@@ -140,7 +155,7 @@ func transformForecast(forecast NwsForecast) ([]weather.Record, error) {
 	for _, items := range table {
 		err := processMeasurement(&recordMap, items)
 		if err != nil {
-			return nil, errors.New(err)
+			return nil, errors.WithStack(err)
 		}
 	}
 
@@ -153,12 +168,12 @@ func transformForecast(forecast NwsForecast) ([]weather.Record, error) {
 	return values, nil
 }
 
-func processMeasurement(recordMapP *map[time.Time]weather.Record, t Transformation) error {
+func processMeasurement(recordMapP *map[time.Time]weather.Record, t transformation) error {
 	recordMap := *recordMapP
 	for _, forecastRecord := range t.measurements.Values {
-		hours, err := DurationStrToHours(forecastRecord.ValidTime)
+		hours, err := durationStrToHours(forecastRecord.ValidTime)
 		if err != nil {
-			return errors.New(err)
+			return errors.WithStack(err)
 		}
 		convertedValue := forecastRecord.Value
 		if t.aggregation != nil {
@@ -175,21 +190,21 @@ func processMeasurement(recordMapP *map[time.Time]weather.Record, t Transformati
 	return nil
 }
 
-func DurationStrToHours(dateString string) ([]time.Time, error) {
+func durationStrToHours(dateString string) ([]time.Time, error) {
 	// split string by slash
 	split := strings.Split(dateString, "/")
 
 	// calculate duration in hours
 	duration, err := period.Parse(split[1])
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, errors.WithStack(err)
 	}
 	hours := int(math.Ceil(duration.DurationApprox().Hours()))
 
 	// parse time(hour), defaulting to UTC. for some reason Parse() doesn't work to default to UTC.
 	point, err := time.ParseInLocation(time.RFC3339, split[0], nil)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, errors.WithStack(err)
 	}
 
 	// make a slice with all the hours contained in the duration
@@ -208,14 +223,14 @@ func cleanup(closer io.Closer) {
 	}
 }
 
-type Transformation struct {
-	measurements ForecastMeasurements
+type transformation struct {
+	measurements forecastMeasurements
 	setter       func(record *weather.Record, val float64)
 	conversion   func(val float64) float64
 	aggregation  func(hours int, val float64) float64
 }
 
-type ForecastMeasurements struct {
+type forecastMeasurements struct {
 	Uom    string `json:"uom"`
 	Values []struct {
 		ValidTime string  `json:"validTime"`
@@ -223,20 +238,20 @@ type ForecastMeasurements struct {
 	}
 }
 
-type NwsForecast struct {
+type nwsForecast struct {
 	Properties struct {
 		UpdateTime                 string               `json:"updateTime"`
-		Temperature                ForecastMeasurements `json:"temperature"`
-		Dewpoint                   ForecastMeasurements `json:"dewpoint"`
-		ApparentTemperature        ForecastMeasurements `json:"apparentTemperature"`
-		SkyCover                   ForecastMeasurements `json:"skyCover"`
-		WindDirection              ForecastMeasurements `json:"windDirection"`
-		WindSpeed                  ForecastMeasurements `json:"windSpeed"`
-		WindGust                   ForecastMeasurements `json:"windGust"`
-		ProbabilityOfPrecipitation ForecastMeasurements `json:"probabilityOfPrecipitation"`
-		QuantitativePrecipitation  ForecastMeasurements `json:"quantitativePrecipitation"`
-		IceAccumulation            ForecastMeasurements `json:"iceAccumulation"`
-		SnowfallAmount             ForecastMeasurements `json:"snowfallAmount"`
+		Temperature                forecastMeasurements `json:"temperature"`
+		Dewpoint                   forecastMeasurements `json:"dewpoint"`
+		ApparentTemperature        forecastMeasurements `json:"apparentTemperature"`
+		SkyCover                   forecastMeasurements `json:"skyCover"`
+		WindDirection              forecastMeasurements `json:"windDirection"`
+		WindSpeed                  forecastMeasurements `json:"windSpeed"`
+		WindGust                   forecastMeasurements `json:"windGust"`
+		ProbabilityOfPrecipitation forecastMeasurements `json:"probabilityOfPrecipitation"`
+		QuantitativePrecipitation  forecastMeasurements `json:"quantitativePrecipitation"`
+		IceAccumulation            forecastMeasurements `json:"iceAccumulation"`
+		SnowfallAmount             forecastMeasurements `json:"snowfallAmount"`
 		Hazards                    struct {
 			Values []struct {
 				ValidTime string `json:"validTime"`

@@ -38,7 +38,7 @@ func TestStr2Times(t *testing.T) {
 
 	for _, testTable := range tests {
 		t.Run(testTable.dateString, func(t *testing.T) {
-			actual, err := DurationStrToHours(testTable.dateString)
+			actual, err := durationStrToHours(testTable.dateString)
 			assert.Nil(t, err)
 			assert.Equal(t, testTable.expected, actual)
 		})
