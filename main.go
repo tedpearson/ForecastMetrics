@@ -48,7 +48,6 @@ func RunForecast(config Config, source string, location Location, writer influx.
 		ForecastSource:  source,
 		MeasurementName: config.Forecast.MeasurementName,
 		Location:        location.Name,
-		ForecastTime:    forecastTime,
 	}, records)
 	handleError(err)
 	if config.Forecast.History.Enabled {
@@ -57,7 +56,7 @@ func RunForecast(config Config, source string, location Location, writer influx.
 			ForecastSource:  source,
 			MeasurementName: config.Forecast.History.MeasurementName,
 			Location:        location.Name,
-			ForecastTime:    forecastTime,
+			ForecastTime:    &forecastTime,
 		}, records)
 		handleError(err)
 	}

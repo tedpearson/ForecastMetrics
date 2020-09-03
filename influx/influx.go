@@ -9,6 +9,7 @@ import (
 	"github.com/tedpearson/weather2influxdb/weather"
 	"log"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -28,7 +29,7 @@ type WriteOptions struct {
 	ForecastSource  string
 	MeasurementName string
 	Location        string
-	ForecastTime    int64
+	ForecastTime    *int64
 }
 
 func New(config Config) Writer {
@@ -54,8 +55,11 @@ func makePoint(record weather.Record, options WriteOptions) *write.Point {
 	p := influxdb2.NewPointWithMeasurement(options.MeasurementName).
 		AddTag("source", options.ForecastSource).
 		AddTag("location", options.Location).
-		SetTime(record.Time).
-		AddField("forecast_time", options.ForecastTime)
+		SetTime(record.Time)
+	if options.ForecastTime != nil {
+		p.AddField("forecast_time", *options.ForecastTime)
+		p.AddTag("forecast_time_tag", strconv.FormatInt(*options.ForecastTime, 10))
+	}
 	time.Now().UnixNano()
 	for i := 0; i < e.NumField(); i++ {
 		name := strcase.ToSnake(e.Type().Field(i).Name)
