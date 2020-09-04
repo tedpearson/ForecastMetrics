@@ -5,9 +5,9 @@ sources in InfluxDB.
 
 #### Currently supported sources:
 - National Weather Service (NWS)
+- VisualCrossing
 
 #### Future potential sources:
-- visualcrossing.com
 - theglobalweather.com (pay-as-you-go version of weatherapi.com)
 
 ## Usage:
@@ -47,14 +47,12 @@ are not very interesting to look at in a graph.
 - I preferred Free APIs or APIs allowing at least 1500 forecasts
 per month, as I only made <200 calls/day to DarkSky, and paying
 large amounts for my personal forecast dashboard is just silly.
-    - This is why visualcrossing is in the future sources list,
-    because their free api will support at least 1500
-    forecasts/month on their free tier.
+    - This is why visualcrossing is a supported source,
+    because their free tier supports 250 forecasts/day.
 - I also considered Low-cost APIs.
-    - Theglobalweather is a
-    pay-as-you-go api that you only pay a fraction of a cent per
-    call, which is much better than paying tens or hundreds of
-    US dollars a month.
+    - Theglobalweather is a pay-as-you-go api that you only pay 
+    a fraction of a cent per call, which is much better than paying
+    tens or hundreds of US dollars a month.
 
 ### TBD:
 - attach screenshots of my forecast dashboards
