@@ -26,10 +26,14 @@ func main() {
 	viper.AddConfigPath("config")
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
-	handleError(err)
+	if err != nil {
+		log.Fatalf("Couldn't read config file: %+v", err)
+	}
 	var config Config
 	err = viper.Unmarshal(&config)
-	handleError(err)
+	if err != nil {
+		log.Fatalf("Couldn't decode config: %+v", err)
+	}
 
 	client := httpcache.NewTransport(diskcache.New(config.Forecast.HttpCacheDir)).Client()
 	//client.Timeout = 2 * time.Second
@@ -64,7 +68,10 @@ func MakeForecasters(config Config) map[string]weather.Forecaster {
 func (app App) RunForecast(src string, location Location) {
 	c := app.config
 	records, err := app.forecasters[src].GetWeather(location.Latitude, location.Longitude, app.retryer)
-	handleError(err)
+	if err != nil {
+		log.Printf("%+v", err)
+		return
+	}
 	// write forecast
 	err = app.writer.WriteMeasurements(influx.WriteOptions{
 		Bucket:          c.InfluxDB.Database,
@@ -72,7 +79,9 @@ func (app App) RunForecast(src string, location Location) {
 		MeasurementName: c.Forecast.MeasurementName,
 		Location:        location.Name,
 	}, records)
-	handleError(err)
+	if err != nil {
+		log.Printf("%+v", err)
+	}
 	if c.Forecast.History.Enabled {
 		err = app.writer.WriteMeasurements(influx.WriteOptions{
 			Bucket:         c.InfluxDB.Database + "/" + c.Forecast.History.RetentionPolicy,
@@ -81,13 +90,9 @@ func (app App) RunForecast(src string, location Location) {
 			Location:        location.Name,
 			ForecastTime:    &app.forecastTime,
 		}, records)
-		handleError(err)
-	}
-}
-
-func handleError(err error) {
-	if err != nil {
-		log.Fatalf("Error, exiting: %+v", err)
+		if err != nil {
+			log.Printf("%+v", err)
+		}
 	}
 }
 
