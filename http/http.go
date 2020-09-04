@@ -9,16 +9,20 @@ import (
 	"net/http"
 )
 
-func RetryRequest(url string, client *http.Client, off *backoff.ExponentialBackOff) (io.ReadCloser, error) {
+type Retryer struct {
+	Client *http.Client
+}
+
+func (r Retryer) RetryRequest(url string, off *backoff.ExponentialBackOff) (io.ReadCloser, error) {
 	var body *io.ReadCloser
-	err := backoff.Retry(doRequest(url, client, &body), off)
+	err := backoff.Retry(r.doRequest(url, &body), off)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return *body, nil
 }
 
-func doRequest(url string, client *http.Client, body **io.ReadCloser) func() error {
+func (r Retryer) doRequest(url string, body **io.ReadCloser) func() error {
 	return func() error {
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -26,7 +30,7 @@ func doRequest(url string, client *http.Client, body **io.ReadCloser) func() err
 		}
 		// user-agent required by weather.gov with email
 		req.Header.Set("User-Agent", "https://github.com/tedpearson/weather2influxdb by ted@tedpearson.com")
-		resp, err := client.Do(req)
+		resp, err := r.Client.Do(req)
 		if err != nil {
 			return backoff.Permanent(err)
 		}

@@ -1,23 +1,24 @@
 package main
 
 import (
+	"github.com/gregjones/httpcache"
+	"github.com/gregjones/httpcache/diskcache"
 	"github.com/spf13/viper"
+	"github.com/tedpearson/weather2influxdb/http"
 	"github.com/tedpearson/weather2influxdb/influx"
-	"github.com/tedpearson/weather2influxdb/nws"
+	"github.com/tedpearson/weather2influxdb/source"
 	"github.com/tedpearson/weather2influxdb/weather"
 	"log"
 	"time"
 )
 
-var (
-	// Add new Forecasters here so they are supported in the config
-	// alternatively, make each forecaster register with a registry.
-	sources = map[string]weather.Forecaster{
-		"nws": nws.NWS{},
-	}
-	// if this ever becomes a long running process, move this into RunForecast().
-	forecastTime = time.Now().Truncate(time.Hour).Unix() * 1000
-)
+type App struct {
+	forecasters  map[string]weather.Forecaster
+	forecastTime int64
+	writer       influx.Writer
+	retryer      http.Retryer
+	config       Config
+}
 
 func main() {
 	viper.SetConfigName("weather2influxdb")
@@ -30,33 +31,55 @@ func main() {
 	err = viper.Unmarshal(&config)
 	handleError(err)
 
-	writer := influx.New(config.InfluxDB)
+	client := httpcache.NewTransport(diskcache.New(config.Forecast.HttpCacheDir)).Client()
+	//client.Timeout = 2 * time.Second
+	retryer := http.Retryer{
+		Client: client,
+	}
+	app := App{
+		forecasters:  MakeForecasters(config),
+		forecastTime: time.Now().Truncate(time.Hour).Unix() * 1000,
+		writer:       influx.New(config.InfluxDB),
+		retryer:      retryer,
+		config:       config,
+	}
 
 	for _, location := range config.Locations {
-		for _, source := range config.Forecast.Sources {
-			RunForecast(config, source, location, writer)
+		for _, src := range config.Forecast.Sources {
+			app.RunForecast(src, location)
 		}
 	}
 }
 
-func RunForecast(config Config, source string, location Location, writer influx.Writer) {
-	records, err := sources[source].GetWeather(location.Latitude, location.Longitude, config.Forecast.HttpCacheDir)
+func MakeForecasters(config Config) map[string]weather.Forecaster {
+	sources := map[string]weather.Forecaster{
+		"nws": source.NWS{},
+		"visualcrossing": source.VisualCrossing{
+			Key: config.Forecast.VisualCrossing.Key,
+		},
+	}
+	return sources
+}
+
+func (app App) RunForecast(src string, location Location) {
+	c := app.config
+	records, err := app.forecasters[src].GetWeather(location.Latitude, location.Longitude, app.retryer)
 	handleError(err)
 	// write forecast
-	err = writer.WriteMeasurements(influx.WriteOptions{
-		Bucket:          config.InfluxDB.Database,
-		ForecastSource:  source,
-		MeasurementName: config.Forecast.MeasurementName,
+	err = app.writer.WriteMeasurements(influx.WriteOptions{
+		Bucket:          c.InfluxDB.Database,
+		ForecastSource:  src,
+		MeasurementName: c.Forecast.MeasurementName,
 		Location:        location.Name,
 	}, records)
 	handleError(err)
-	if config.Forecast.History.Enabled {
-		err = writer.WriteMeasurements(influx.WriteOptions{
-			Bucket:          config.InfluxDB.Database + "/" + config.Forecast.History.RetentionPolicy,
-			ForecastSource:  source,
-			MeasurementName: config.Forecast.History.MeasurementName,
+	if c.Forecast.History.Enabled {
+		err = app.writer.WriteMeasurements(influx.WriteOptions{
+			Bucket:         c.InfluxDB.Database + "/" + c.Forecast.History.RetentionPolicy,
+			ForecastSource:  src,
+			MeasurementName: c.Forecast.History.MeasurementName,
 			Location:        location.Name,
-			ForecastTime:    &forecastTime,
+			ForecastTime:    &app.forecastTime,
 		}, records)
 		handleError(err)
 	}
@@ -84,8 +107,11 @@ type Config struct {
 			RetentionPolicy string `mapstructure:"retention_policy"`
 			MeasurementName string `mapstructure:"measurement_name"`
 		}
-		Sources      []string
-		HttpCacheDir string `mapstructure:"http_cache_dir"`
+		Sources        []string
+		HttpCacheDir   string `mapstructure:"http_cache_dir"`
+		VisualCrossing struct {
+			Key string
+		} `mapstructure:"visualcrossing"`
 	}
 }
 
@@ -94,8 +120,8 @@ type Config struct {
 //  theglobalweather (test with free(?), or sign up, cheap per call)
 //  authentication as needed
 //  add error handling for things like bad response from api, no points receieved, bad data
-//   specifically, figure out why sometimes there are zero points from nws
 //  (e.g. massively negative apparent temp on datapoints with no other data)
 //  build ci and releases in github actions
 //  test coverage
 //  embed build version in binary: https://blog.kowalczyk.info/article/vEja/embedding-build-number-in-go-executable.html
+//  see if vc in metric is any more accurate for precipitation

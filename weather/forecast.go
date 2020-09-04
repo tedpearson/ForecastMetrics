@@ -1,6 +1,9 @@
 package weather
 
-import "time"
+import (
+	"github.com/tedpearson/weather2influxdb/http"
+	"time"
+)
 
 type Record struct {
 	Time                     time.Time
@@ -18,7 +21,7 @@ type Record struct {
 }
 
 type Forecaster interface {
-	GetWeather(lat string, lon string, cachePath string) ([]Record, error)
+	GetWeather(lat string, lon string, retryer http.Retryer) ([]Record, error)
 }
 
 func SetTemperature(r *Record, v float64) {
