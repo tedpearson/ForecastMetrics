@@ -6,9 +6,12 @@ sources in InfluxDB.
 #### Currently supported sources:
 - National Weather Service (NWS)
 - VisualCrossing
+- TheGlobalWeather
 
 #### Future potential sources:
-- theglobalweather.com (pay-as-you-go version of weatherapi.com)
+- None planned at this time, due to not meeting the below
+criteria (7 day hourly forecast, reasonably priced or free)
+- Open an issue if you find a worthy source!
 
 ## Usage:
 
@@ -57,6 +60,7 @@ large amounts for my personal forecast dashboard is just silly.
 ### TBD:
 - attach screenshots of my forecast dashboards
 - Implement future sources list
+- Explain the config & how to run
 
 [release]: https://github.com/tedpearson/weather2influxdb/releases
 [config-example]: https://github.com/tedpearson/weather2influxdb/blob/master/config/weather2influxdb.example.yaml
