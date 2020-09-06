@@ -127,7 +127,6 @@ type Config struct {
 }
 
 // todo:
-//  authentication as needed
 //  add error handling for things like bad response from api, no points receieved, bad data
 //  (e.g. massively negative apparent temp on datapoints with no other data)
 //  build ci and releases in github actions
