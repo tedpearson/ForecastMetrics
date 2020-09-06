@@ -7,7 +7,7 @@ import (
 )
 
 func CToF(celsius float64) float64 {
-	return math.Round((celsius*9/5+32)*100) / 100
+	return Round(celsius*9/5+32, 2)
 }
 
 func FToC(fahrenheit float64) float64 {
@@ -19,15 +19,23 @@ func Identity(a float64) float64 {
 }
 
 func KmhToMph(kmh float64) float64 {
-	return math.Round(kmh*0.6213711922*100) / 100
+	return Round(kmh*0.6213711922, 2)
 }
 
 func PercentToRatio(percent float64) float64 {
-	return math.Round(percent * 10) / 1000
+	return Round(percent/100, 3)
 }
 
 func MmToIn(mm float64) float64 {
-	return math.Round(mm/25.4*10000) / 10000
+	return Round(mm/25.4, 4)
+}
+
+func Round(a float64, digits int) float64 {
+	if digits > 10 || digits < 0 {
+		panic("Round() only supports 0-10 digits")
+	}
+	scaler := math.Pow(10, float64(digits))
+	return math.Round(a*scaler) / scaler
 }
 
 func NilToZero(a *float64) *float64 {

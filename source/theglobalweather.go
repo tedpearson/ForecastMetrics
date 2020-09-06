@@ -124,7 +124,7 @@ func (t TheGlobalWeather) appendAstroRecords(day Forecastday, loc *time.Location
 		f: func(r *weather.Record) {
 			f := convert.StrToF(a.MoonIllumination, "moon illumination")
 			ratio := convert.PercentToRatio(f)
-			r.MoonPhase = &ratio
+			r.FullMoonRatio = &ratio
 		},
 		records: records,
 	})

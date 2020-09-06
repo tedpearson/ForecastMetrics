@@ -93,17 +93,22 @@ func (v VisualCrossing) transformForecast(measurements []vcMeasurement) ([]weath
 			one := 1
 			zero := 0
 			sunrise := weather.Record{
-				Time: stamp,
+				Time:  stamp,
 				SunUp: &one,
 			}
 			stamp, err = time.Parse(time.RFC3339, *m.Sunset)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
+			// visualcrossing moon phase:
+			// 0   = new moon
+			// 0.5 = full moon
+			// 1   = new moon again
+			moonRatio := convert.Round(2.0*math.Abs(*m.MoonPhase-0.5), 2)
 			sunset := weather.Record{
-				Time:  stamp,
-				SunUp: &zero,
-				MoonPhase: m.MoonPhase,
+				Time:          stamp,
+				SunUp:         &zero,
+				FullMoonRatio: &moonRatio,
 			}
 			values = append(values, sunrise)
 			values = append(values, sunset)

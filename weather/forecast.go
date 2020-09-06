@@ -20,7 +20,8 @@ type Record struct {
 	IceAmount                *float64
 	SunUp                    *int
 	MoonUp                   *int
-	MoonPhase                *float64
+	// this is hard to name. It's not "how bright is the moon" - it's "ratio of current moon phase to the full moon".
+	FullMoonRatio            *float64
 }
 
 type Forecaster interface {
