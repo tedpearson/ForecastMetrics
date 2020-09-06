@@ -35,7 +35,7 @@ func (v VisualCrossing) GetWeather(lat string, lon string, retryer http.Retryer)
 	log.Println("Getting VisualCrossing forecast")
 	body, err := retryer.RetryRequest(base+q.Encode(), off)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	defer cleanup(body)
 
@@ -46,7 +46,7 @@ func (v VisualCrossing) GetWeather(lat string, lon string, retryer http.Retryer)
 	}
 	records, err := v.transformForecast(forecast.Location.Values)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	return records, nil
 }

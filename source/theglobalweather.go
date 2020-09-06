@@ -28,7 +28,7 @@ func (t TheGlobalWeather) GetWeather(lat string, lon string, retryer http.Retrye
 	log.Println("Getting TheGlobalWeather forecast")
 	body, err := retryer.RetryRequest(base+q.Encode(), off)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	defer cleanup(body)
 
@@ -39,7 +39,7 @@ func (t TheGlobalWeather) GetWeather(lat string, lon string, retryer http.Retrye
 	}
 	records, err := t.transformForecast(forecast)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	return records, nil
 }

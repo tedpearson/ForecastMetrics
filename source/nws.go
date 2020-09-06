@@ -27,7 +27,7 @@ func (n NWS) GetWeather(lat string, lon string, retryer http.Retryer) ([]weather
 	off.MaxElapsedTime = 22 * time.Second
 	body1, err := retryer.RetryRequest(url, off)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	defer cleanup(body1)
 	var jsonResponse map[string]interface{}
@@ -40,7 +40,7 @@ func (n NWS) GetWeather(lat string, lon string, retryer http.Retryer) ([]weather
 	log.Println("Getting NWS forecast")
 	body2, err := retryer.RetryRequest(gridpointUrl, off)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	defer cleanup(body2)
 
@@ -52,7 +52,7 @@ func (n NWS) GetWeather(lat string, lon string, retryer http.Retryer) ([]weather
 
 	records, err := n.transformForecast(forecast)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	return records, nil
 }
@@ -124,7 +124,7 @@ func (n NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) {
 	for _, items := range table {
 		err := processMeasurement(&recordMap, items)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, err
 		}
 	}
 
@@ -142,7 +142,7 @@ func processMeasurement(recordMapP *map[time.Time]weather.Record, t transformati
 	for _, forecastRecord := range t.measurements.Values {
 		hours, err := durationStrToHours(forecastRecord.ValidTime)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		convertedValue := forecastRecord.Value
 		if t.aggregation != nil {
