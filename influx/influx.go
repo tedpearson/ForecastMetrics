@@ -63,10 +63,16 @@ func makePoint(record weather.Record, options WriteOptions) *write.Point {
 	time.Now().UnixNano()
 	for i := 0; i < e.NumField(); i++ {
 		name := strcase.ToSnake(e.Type().Field(i).Name)
-		if name == "Time" {
+		// note: skip time field already added above
+		if name == "time" {
 			continue
 		}
-		val := e.Field(i).Interface()
+		ptr := e.Field(i)
+		if ptr.IsNil() {
+			// don't dereference nil pointers
+			continue
+		}
+		val := ptr.Elem().Interface()
 		p.AddField(name, val)
 	}
 	return p

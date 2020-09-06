@@ -20,3 +20,5 @@ forecast:
   http_cache_dir: /tmp/weather2influxdb-cache
   visualcrossing:
     key: your_key_here
+  theglobalweather:
+    key: your_key_here

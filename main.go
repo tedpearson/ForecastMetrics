@@ -61,13 +61,16 @@ func MakeForecasters(config Config) map[string]weather.Forecaster {
 		"visualcrossing": source.VisualCrossing{
 			Key: config.Forecast.VisualCrossing.Key,
 		},
+		"theglobalweather": source.TheGlobalWeather{
+			Key: config.Forecast.TheGlobalWeather.Key,
+		},
 	}
 	return sources
 }
 
-func (app App) RunForecast(src string, location Location) {
+func (app App) RunForecast(src string, loc Location) {
 	c := app.config
-	records, err := app.forecasters[src].GetWeather(location.Latitude, location.Longitude, app.retryer)
+	records, err := app.forecasters[src].GetWeather(loc.Latitude, loc.Longitude, app.retryer)
 	if err != nil {
 		log.Printf("%+v", err)
 		return
@@ -77,17 +80,17 @@ func (app App) RunForecast(src string, location Location) {
 		Bucket:          c.InfluxDB.Database,
 		ForecastSource:  src,
 		MeasurementName: c.Forecast.MeasurementName,
-		Location:        location.Name,
+		Location:        loc.Name,
 	}, records)
 	if err != nil {
 		log.Printf("%+v", err)
 	}
 	if c.Forecast.History.Enabled {
 		err = app.writer.WriteMeasurements(influx.WriteOptions{
-			Bucket:         c.InfluxDB.Database + "/" + c.Forecast.History.RetentionPolicy,
+			Bucket:          c.InfluxDB.Database + "/" + c.Forecast.History.RetentionPolicy,
 			ForecastSource:  src,
 			MeasurementName: c.Forecast.History.MeasurementName,
-			Location:        location.Name,
+			Location:        loc.Name,
 			ForecastTime:    &app.forecastTime,
 		}, records)
 		if err != nil {
@@ -117,12 +120,13 @@ type Config struct {
 		VisualCrossing struct {
 			Key string
 		} `mapstructure:"visualcrossing"`
+		TheGlobalWeather struct {
+			Key string
+		} `mapstructure:"theglobalweather"`
 	}
 }
 
 // todo:
-//  visualcrossing (free version for now)
-//  theglobalweather (test with free(?), or sign up, cheap per call)
 //  authentication as needed
 //  add error handling for things like bad response from api, no points receieved, bad data
 //  (e.g. massively negative apparent temp on datapoints with no other data)
@@ -130,3 +134,5 @@ type Config struct {
 //  test coverage
 //  embed build version in binary: https://blog.kowalczyk.info/article/vEja/embedding-build-number-in-go-executable.html
 //  see if vc in metric is any more accurate for precipitation
+//  add code documentation
+//  update readme with how to set up and use (config, influx, accounts)

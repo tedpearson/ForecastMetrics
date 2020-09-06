@@ -65,40 +65,44 @@ func (v VisualCrossing) transformForecast(measurements []vcMeasurement) ([]weath
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+		wdir := int(*m.Wdir)
+		skyCover := convert.PercentToRatio(*m.CloudCover)
+		precipProb := convert.PercentToRatio(*m.Pop)
 		record := weather.Record{
 			Time:                     t,
-			Temperature:              *m.Temp,
+			Temperature:              m.Temp,
 			Dewpoint:                 calcDewpoint(*m.Humidity, *m.Temp),
 			FeelsLike:                feelsLike(m.Temp, m.HeatIndex, m.WindChill),
-			SkyCover:                 convert.PercentToRatio(*m.CloudCover),
-			WindDirection:            int(*m.Wdir),
-			WindSpeed:                *m.Wspd,
-			WindGust:                 *m.Wgust,
-			PrecipitationProbability: convert.PercentToRatio(*m.Pop),
+			SkyCover:                 &skyCover,
+			WindDirection:            &wdir,
+			WindSpeed:                m.Wspd,
+			WindGust:                 m.Wgust,
+			PrecipitationProbability: &precipProb,
 			PrecipitationAmount:      m.Precip,
 			SnowAmount:               convert.NilToZero(m.Snow),
-			IceAmount:                0,
+			IceAmount:                nil,
 		}
 		values = append(values, record)
 	}
 	return values, nil
 }
 
-func feelsLike(temp *float64, heatIndex *float64, windChill *float64) float64 {
+func feelsLike(temp *float64, heatIndex *float64, windChill *float64) *float64 {
 	if windChill != nil {
-		return *windChill
+		return windChill
 	}
 	if heatIndex != nil {
-		return *heatIndex
+		return heatIndex
 	}
-	return *temp
+	return temp
 }
 
-func calcDewpoint(rh float64, tempF float64) float64 {
+func calcDewpoint(rh float64, tempF float64) *float64 {
 	tempC := convert.FToC(tempF)
 	dpC := (237.3 * (math.Log(rh/100) + ((17.27 * tempC) / (237.3 + tempC)))) /
 			(17.27 - (math.Log(rh/100) + ((17.27 * tempC) / (237.3 + tempC))))
-	return convert.CToF(dpC)
+	f := convert.CToF(dpC)
+	return &f
 }
 
 type vcMeasurement struct {
@@ -111,7 +115,7 @@ type vcMeasurement struct {
 	CloudCover  *float64 `json:"cloudcover"`
 	Pop         *float64 `json:"pop"`
 	Datetime    int64    `json:"datetime"`
-	Precip      float64  `json:"precip"`
+	Precip      *float64  `json:"precip"`
 	Snow        *float64 `json:"snow"`
 	Wgust       *float64 `json:"wgust"`
 	WindChill   *float64 `json:"windchill"`
