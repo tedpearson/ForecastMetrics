@@ -81,8 +81,6 @@ func (t TheGlobalWeather) processHour(hour Hour, loc *time.Location) (weather.Re
 		WindGust:                 &hour.GustMph,
 		PrecipitationProbability: &precipProb,
 		PrecipitationAmount:      &hour.PrecipIn,
-		SnowAmount:               nil,
-		IceAmount:                nil,
 	}
 	return record, nil
 }

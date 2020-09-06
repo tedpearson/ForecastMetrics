@@ -28,6 +28,7 @@ func (v VisualCrossing) GetWeather(lat string, lon string, retryer http.Retryer)
 	q.Add("locationMode", "single")
 	q.Add("key", v.Key) // todo
 	q.Add("location", lat+","+lon)
+	q.Add("includeAstronomy", "true")
 	off := backoff.NewExponentialBackOff()
 	// note: low number of retries because we are using free tier (250 results/day)
 	off.MaxElapsedTime = 4 * time.Second
@@ -53,6 +54,7 @@ func (v VisualCrossing) GetWeather(lat string, lon string, retryer http.Retryer)
 func (v VisualCrossing) transformForecast(measurements []vcMeasurement) ([]weather.Record, error) {
 	// stop when things become null. (maybe, or maybe we skip null points)
 	values := make([]weather.Record, 0, len(measurements))
+	var lastAstro time.Time
 	for _, m := range measurements {
 		// note: after 7 days, the forecast data is every 3 hours
 		//       but the other 2 hours are still in the output
@@ -80,7 +82,31 @@ func (v VisualCrossing) transformForecast(measurements []vcMeasurement) ([]weath
 			PrecipitationProbability: &precipProb,
 			PrecipitationAmount:      m.Precip,
 			SnowAmount:               convert.NilToZero(m.Snow),
-			IceAmount:                nil,
+		}
+		if lastAstro.Day() != t.Day() {
+			lastAstro = t
+			// do sunrise/sunset
+			stamp, err := time.Parse(time.RFC3339, *m.Sunrise)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			one := 1
+			zero := 0
+			sunrise := weather.Record{
+				Time: stamp,
+				SunUp: &one,
+			}
+			stamp, err = time.Parse(time.RFC3339, *m.Sunset)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			sunset := weather.Record{
+				Time:  stamp,
+				SunUp: &zero,
+				MoonPhase: m.MoonPhase,
+			}
+			values = append(values, sunrise)
+			values = append(values, sunset)
 		}
 		values = append(values, record)
 	}
@@ -108,6 +134,7 @@ func calcDewpoint(rh float64, tempF float64) *float64 {
 type vcMeasurement struct {
 	Wdir        *float64 `json:"wdir"`
 	Temp        *float64 `json:"temp"`
+	Sunrise     *string  `json:"sunrise"`
 	Wspd        *float64 `json:"wspd"`
 	DatetimeStr string   `json:"datetimeStr"`
 	HeatIndex   *float64 `json:"heatindex"`
@@ -115,10 +142,12 @@ type vcMeasurement struct {
 	CloudCover  *float64 `json:"cloudcover"`
 	Pop         *float64 `json:"pop"`
 	Datetime    int64    `json:"datetime"`
-	Precip      *float64  `json:"precip"`
+	Precip      *float64 `json:"precip"`
 	Snow        *float64 `json:"snow"`
+	Sunset      *string  `json:"sunset"`
 	Wgust       *float64 `json:"wgust"`
 	WindChill   *float64 `json:"windchill"`
+	MoonPhase   *float64 `json:"moonphase"`
 }
 
 type vcForecast struct {

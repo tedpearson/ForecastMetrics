@@ -17,6 +17,8 @@ forecast:
     measurement_name: forecast_history
   sources:
     - nws
+    - visualcrossing
+    - theglobalweather
   http_cache_dir: /tmp/weather2influxdb-cache
   visualcrossing:
     key: your_key_here
