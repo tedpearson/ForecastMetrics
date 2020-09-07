@@ -1,9 +1,22 @@
 package weather
 
 import (
+	"github.com/iancoleman/strcase"
+	"github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
 	"github.com/tedpearson/weather2influxdb/http"
+	"reflect"
+	"strconv"
 	"time"
 )
+
+
+type WriteOptions struct {
+	ForecastSource  string
+	MeasurementName string
+	Location        string
+	ForecastTime    *int64
+}
 
 type Record struct {
 	Time                     time.Time
@@ -18,14 +31,79 @@ type Record struct {
 	PrecipitationAmount      *float64
 	SnowAmount               *float64
 	IceAmount                *float64
+}
+
+type Records struct {
+	Values []Record
+}
+
+func (rs Records) ToPoints(options WriteOptions) []*write.Point {
+	ps := make([]*write.Point, len(rs.Values))
+	for i, r := range rs.Values {
+		ps[i] = toPoint(r.Time, r, options)
+	}
+	return ps
+}
+
+type AstroEvent struct {
+	Time                     time.Time
 	SunUp                    *int
 	MoonUp                   *int
 	// this is hard to name. It's not "how bright is the moon" - it's "ratio of current moon phase to the full moon".
 	FullMoonRatio            *float64
 }
 
+type AstroEvents struct {
+	Values []AstroEvent
+}
+
+func (as AstroEvents) ToPoints(options WriteOptions) []*write.Point {
+	ps := make([]*write.Point, len(as.Values))
+	for i, a := range as.Values {
+		ps[i] = toPoint(a.Time, a, options)
+	}
+	return ps
+}
+
+func toPoint(t time.Time, i interface{}, options WriteOptions) *write.Point {
+	e := reflect.ValueOf(i)
+	p := influxdb2.NewPointWithMeasurement(options.MeasurementName).
+		AddTag("source", options.ForecastSource).
+		AddTag("location", options.Location).
+		SetTime(t)
+	if options.ForecastTime != nil {
+		p.AddField("forecast_time", *options.ForecastTime)
+		p.AddTag("forecast_time_tag", strconv.FormatInt(*options.ForecastTime, 10))
+	}
+	for i := 0; i < e.NumField(); i++ {
+		name := strcase.ToSnake(e.Type().Field(i).Name)
+		// note: skip time field already added above
+		if name == "time" {
+			continue
+		}
+		ptr := e.Field(i)
+		if ptr.IsNil() {
+			// don't dereference nil pointers
+			continue
+		}
+		val := ptr.Elem().Interface()
+		p.AddField(name, val)
+	}
+	return p
+}
+
+type Initer interface {
+	Init(lat string, lon string, retryer http.Retryer) error
+}
+
 type Forecaster interface {
-	GetWeather(lat string, lon string, retryer http.Retryer) ([]Record, error)
+	Initer
+	GetWeather() (Records, error)
+}
+
+type Astrocaster interface {
+	Initer
+	GetAstrocast() (AstroEvents, error)
 }
 
 func SetTemperature(r *Record, v float64) {

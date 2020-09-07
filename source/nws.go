@@ -1,5 +1,9 @@
 package source
 
+// https://weather-gov.github.io/api/gridpoints
+// https://weather-gov.github.io/api/general-faqs
+// https://www.weather.gov/documentation/services-web-api#/default/get_gridpoints__wfo___x___y_
+
 import (
 	"encoding/json"
 	"fmt"
@@ -16,9 +20,11 @@ import (
 	"time"
 )
 
-type NWS struct{}
+type NWS struct{
+	forecast nwsForecast
+}
 
-func (n NWS) GetWeather(lat string, lon string, retryer http.Retryer) ([]weather.Record, error) {
+func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
 	// find gridpoint
 	url := fmt.Sprintf("https://api.weather.gov/points/%s,%s", lat, lon)
 	log.Println("Looking up NWS location")
@@ -27,37 +33,42 @@ func (n NWS) GetWeather(lat string, lon string, retryer http.Retryer) ([]weather
 	off.MaxElapsedTime = 22 * time.Second
 	body1, err := retryer.RetryRequest(url, off)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer cleanup(body1)
 	var jsonResponse map[string]interface{}
 	err = json.NewDecoder(body1).Decode(&jsonResponse)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	gridpointUrl := jsonResponse["properties"].(map[string]interface{})["forecastGridData"].(string)
 	// okay we have a gridpoint url. get it and turn it into an object and do fun things with it
 	log.Println("Getting NWS forecast")
 	body2, err := retryer.RetryRequest(gridpointUrl, off)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer cleanup(body2)
 
 	var forecast nwsForecast
 	err = json.NewDecoder(body2).Decode(&forecast)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
-
-	records, err := n.transformForecast(forecast)
-	if err != nil {
-		return nil, err
-	}
-	return records, nil
+	n.forecast = forecast
+	return nil
 }
 
-func (n NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) {
+func (n *NWS) GetWeather() (weather.Records, error) {
+	empty := weather.Records{}
+	records, err := n.transformForecast(n.forecast)
+	if err != nil {
+		return empty, err
+	}
+	return weather.Records{Values: records}, nil
+}
+
+func (n *NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) {
 	props := forecast.Properties
 	var table = []transformation{
 		{

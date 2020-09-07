@@ -35,7 +35,7 @@ func main() {
 		log.Fatalf("Couldn't decode config: %+v", err)
 	}
 
-	client := httpcache.NewTransport(diskcache.New(config.Forecast.HttpCacheDir)).Client()
+	client := httpcache.NewTransport(diskcache.New(config.HttpCacheDir)).Client()
 	//client.Timeout = 2 * time.Second
 	retryer := http.Retryer{
 		Client: client,
@@ -49,7 +49,7 @@ func main() {
 	}
 
 	for _, location := range config.Locations {
-		for _, src := range config.Forecast.Sources {
+		for _, src := range config.Sources.Enabled {
 			app.RunForecast(src, location)
 		}
 	}
@@ -57,12 +57,12 @@ func main() {
 
 func MakeForecasters(config Config) map[string]weather.Forecaster {
 	sources := map[string]weather.Forecaster{
-		"nws": source.NWS{},
-		"visualcrossing": source.VisualCrossing{
-			Key: config.Forecast.VisualCrossing.Key,
+		"nws": &source.NWS{},
+		"visualcrossing": &source.VisualCrossing{
+			Key: config.Sources.VisualCrossing.Key,
 		},
-		"theglobalweather": source.TheGlobalWeather{
-			Key: config.Forecast.TheGlobalWeather.Key,
+		"theglobalweather": &source.TheGlobalWeather{
+			Key: config.Sources.TheGlobalWeather.Key,
 		},
 	}
 	return sources
@@ -70,29 +70,65 @@ func MakeForecasters(config Config) map[string]weather.Forecaster {
 
 func (app App) RunForecast(src string, loc Location) {
 	c := app.config
-	records, err := app.forecasters[src].GetWeather(loc.Latitude, loc.Longitude, app.retryer)
+	forecaster := app.forecasters[src]
+	err := forecaster.Init(loc.Latitude, loc.Longitude, app.retryer)
+	if err != nil {
+		log.Printf("%+v", err)
+		return
+	}
+	records, err := app.forecasters[src].GetWeather()
 	if err != nil {
 		log.Printf("%+v", err)
 		return
 	}
 	// write forecast
-	err = app.writer.WriteMeasurements(influx.WriteOptions{
-		Bucket:          c.InfluxDB.Database,
-		ForecastSource:  src,
-		MeasurementName: c.Forecast.MeasurementName,
-		Location:        loc.Name,
-	}, records)
+	log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(records.Values), c.Forecast.MeasurementName, src)
+	err = app.writer.WriteMeasurements(c.InfluxDB.Database,
+		records.ToPoints(weather.WriteOptions{
+			ForecastSource:  src,
+			MeasurementName: c.Forecast.MeasurementName,
+			Location:        loc.Name,
+		}))
 	if err != nil {
 		log.Printf("%+v", err)
 	}
+	// write forecast history
 	if c.Forecast.History.Enabled {
-		err = app.writer.WriteMeasurements(influx.WriteOptions{
-			Bucket:          c.InfluxDB.Database + "/" + c.Forecast.History.RetentionPolicy,
+		log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(records.Values),
+			c.Forecast.History.MeasurementName, src)
+		err = app.writer.WriteMeasurements(c.InfluxDB.Database+"/"+c.Forecast.History.RetentionPolicy,
+			records.ToPoints(weather.WriteOptions{
+				ForecastSource:  src,
+				MeasurementName: c.Forecast.History.MeasurementName,
+				Location:        loc.Name,
+				ForecastTime:    &app.forecastTime,
+			}))
+		if err != nil {
+			log.Printf("%+v", err)
+		}
+	}
+	// write astronomy
+	if c.Astronomy.Enabled {
+		app.RunAstrocast(forecaster, c.InfluxDB.Database, weather.WriteOptions{
 			ForecastSource:  src,
-			MeasurementName: c.Forecast.History.MeasurementName,
+			MeasurementName: c.Astronomy.MeasurementName,
 			Location:        loc.Name,
-			ForecastTime:    &app.forecastTime,
-		}, records)
+		})
+	}
+
+}
+
+func (app App) RunAstrocast(forecaster weather.Forecaster, database string, options weather.WriteOptions) {
+	astrocaster, ok := forecaster.(weather.Astrocaster)
+	if ok {
+		events, err := astrocaster.GetAstrocast()
+		if err != nil {
+			log.Printf("%+v", err)
+			return
+		}
+		log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(events.Values), options.MeasurementName,
+			options.ForecastSource)
+		err = app.writer.WriteMeasurements(database, events.ToPoints(options))
 		if err != nil {
 			log.Printf("%+v", err)
 		}
@@ -115,8 +151,13 @@ type Config struct {
 			RetentionPolicy string `mapstructure:"retention_policy"`
 			MeasurementName string `mapstructure:"measurement_name"`
 		}
-		Sources        []string
-		HttpCacheDir   string `mapstructure:"http_cache_dir"`
+	}
+	Astronomy struct {
+		Enabled         bool
+		MeasurementName string `mapstructure:"measurement_name"`
+	}
+	Sources struct {
+		Enabled        []string
 		VisualCrossing struct {
 			Key string
 		} `mapstructure:"visualcrossing"`
@@ -124,6 +165,7 @@ type Config struct {
 			Key string
 		} `mapstructure:"theglobalweather"`
 	}
+	HttpCacheDir string `mapstructure:"http_cache_dir"`
 }
 
 // todo:

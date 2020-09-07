@@ -2,15 +2,9 @@ package influx
 
 import (
 	"context"
-	"github.com/iancoleman/strcase"
 	"github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
 	"github.com/pkg/errors"
-	"github.com/tedpearson/weather2influxdb/weather"
-	"log"
-	"reflect"
-	"strconv"
-	"time"
 )
 
 type Writer struct {
@@ -24,56 +18,17 @@ type Config struct {
 	Database string
 }
 
-type WriteOptions struct {
-	Bucket          string
-	ForecastSource  string
-	MeasurementName string
-	Location        string
-	ForecastTime    *int64
-}
-
 func New(config Config) Writer {
 	return Writer{influxdb2.NewClient(config.Host, config.User+":"+config.Password)}
 }
 
-func (w *Writer) WriteMeasurements(options WriteOptions, measurements []weather.Record) error {
-	log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(measurements), options.MeasurementName,
-		options.ForecastSource)
-	writeApi := w.client.WriteAPIBlocking("", options.Bucket)
-	for _, measurement := range measurements {
-		point := makePoint(measurement, options)
+func (w *Writer) WriteMeasurements(bucket string, points []*write.Point) error {
+	writeApi := w.client.WriteAPIBlocking("", bucket)
+	for _, point := range points {
 		err := writeApi.WritePoint(context.Background(), point)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 	}
 	return nil
-}
-
-func makePoint(record weather.Record, options WriteOptions) *write.Point {
-	e := reflect.ValueOf(record)
-	p := influxdb2.NewPointWithMeasurement(options.MeasurementName).
-		AddTag("source", options.ForecastSource).
-		AddTag("location", options.Location).
-		SetTime(record.Time)
-	if options.ForecastTime != nil {
-		p.AddField("forecast_time", *options.ForecastTime)
-		p.AddTag("forecast_time_tag", strconv.FormatInt(*options.ForecastTime, 10))
-	}
-	time.Now().UnixNano()
-	for i := 0; i < e.NumField(); i++ {
-		name := strcase.ToSnake(e.Type().Field(i).Name)
-		// note: skip time field already added above
-		if name == "time" {
-			continue
-		}
-		ptr := e.Field(i)
-		if ptr.IsNil() {
-			// don't dereference nil pointers
-			continue
-		}
-		val := ptr.Elem().Interface()
-		p.AddField(name, val)
-	}
-	return p
 }

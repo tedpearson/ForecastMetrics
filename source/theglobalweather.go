@@ -13,10 +13,11 @@ import (
 )
 
 type TheGlobalWeather struct {
-	Key string
+	Key      string
+	forecast tgwForecast
 }
 
-func (t TheGlobalWeather) GetWeather(lat string, lon string, retryer http.Retryer) ([]weather.Record, error) {
+func (t *TheGlobalWeather) Init(lat string, lon string, retryer http.Retryer) error {
 	base := "http://api.theglobalweather.com/v1/forecast.json?"
 	q := url.Values{}
 	q.Add("key", t.Key)
@@ -28,42 +29,92 @@ func (t TheGlobalWeather) GetWeather(lat string, lon string, retryer http.Retrye
 	log.Println("Getting TheGlobalWeather forecast")
 	body, err := retryer.RetryRequest(base+q.Encode(), off)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer cleanup(body)
 
 	var forecast tgwForecast
 	err = json.NewDecoder(body).Decode(&forecast)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
-	records, err := t.transformForecast(forecast)
-	if err != nil {
-		return nil, err
-	}
-	return records, nil
+	t.forecast = forecast
+	return nil
 }
 
-func (t TheGlobalWeather) transformForecast(forecast tgwForecast) ([]weather.Record, error) {
+func (t *TheGlobalWeather) GetWeather() (weather.Records, error) {
+	empty := weather.Records{}
 	records := make([]weather.Record, 0, (24*10)+(5*16))
-	loc, err := time.LoadLocation(forecast.Location.Tzid)
+	loc, err := time.LoadLocation(t.forecast.Location.Tzid)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return empty, errors.WithStack(err)
 	}
-	for _, day := range forecast.Forecast.Forecastday {
-		t.appendAstroRecords(day, loc, &records)
+	for _, day := range t.forecast.Forecast.Forecastday {
 		for _, hour := range day.Hour {
 			record, err := t.processHour(hour, loc)
 			if err != nil {
-				return nil, err
+				return empty, err
 			}
 			records = append(records, record)
 		}
 	}
-	return records, nil
+	return weather.Records{Values: records}, nil
 }
 
-func (t TheGlobalWeather) processHour(hour Hour, loc *time.Location) (weather.Record, error) {
+func (t *TheGlobalWeather) GetAstrocast() (weather.AstroEvents, error) {
+	events := make([]weather.AstroEvent, 0, 5*16)
+	loc, err := time.LoadLocation(t.forecast.Location.Tzid)
+	if err != nil {
+		return weather.AstroEvents{}, errors.WithStack(err)
+	}
+	for _, day := range t.forecast.Forecast.Forecastday {
+		a := day.Astro
+		one := 1
+		zero := 0
+		t.processAstro(astroConversion{
+			time:    a.Sunrise,
+			date:    day.Date,
+			loc:     loc,
+			f:       func(r *weather.AstroEvent) { r.SunUp = &one },
+			events: &events,
+		})
+		t.processAstro(astroConversion{
+			time:    a.Sunset,
+			date:    day.Date,
+			loc:     loc,
+			f:       func(r *weather.AstroEvent) { r.SunUp = &zero },
+			events: &events,
+		})
+		t.processAstro(astroConversion{
+			time:    a.Moonrise,
+			date:    day.Date,
+			loc:     loc,
+			f:       func(r *weather.AstroEvent) { r.MoonUp = &one },
+			events: &events,
+		})
+		t.processAstro(astroConversion{
+			time:    a.Moonset,
+			date:    day.Date,
+			loc:     loc,
+			f:       func(r *weather.AstroEvent) { r.MoonUp = &zero },
+			events: &events,
+		})
+		t.processAstro(astroConversion{
+			time: a.Sunset,
+			date: day.Date,
+			loc:  loc,
+			f: func(r *weather.AstroEvent) {
+				f := convert.StrToF(a.MoonIllumination, "moon illumination")
+				ratio := convert.PercentToRatio(f)
+				r.FullMoonRatio = &ratio
+			},
+			events: &events,
+		})
+	}
+	return weather.AstroEvents{Values: events}, nil
+}
+
+func (t *TheGlobalWeather) processHour(hour Hour, loc *time.Location) (weather.Record, error) {
 	stamp, err := time.ParseInLocation("2006-01-02 15:04", hour.Time, loc)
 	if err != nil {
 		return weather.Record{}, errors.WithStack(err)
@@ -85,60 +136,15 @@ func (t TheGlobalWeather) processHour(hour Hour, loc *time.Location) (weather.Re
 	return record, nil
 }
 
-func (t TheGlobalWeather) appendAstroRecords(day Forecastday, loc *time.Location, records *[]weather.Record) {
-	a := day.Astro
-	one := 1
-	zero := 0
-	t.processAstro(astroConversion{
-		time:    a.Sunrise,
-		date:    day.Date,
-		loc:     loc,
-		f:       func(r *weather.Record) { r.SunUp = &one },
-		records: records,
-	})
-	t.processAstro(astroConversion{
-		time:    a.Sunset,
-		date:    day.Date,
-		loc:     loc,
-		f:       func(r *weather.Record) { r.SunUp = &zero },
-		records: records,
-	})
-	t.processAstro(astroConversion{
-		time:    a.Moonrise,
-		date:    day.Date,
-		loc:     loc,
-		f:       func(r *weather.Record) { r.MoonUp = &one },
-		records: records,
-	})
-	t.processAstro(astroConversion{
-		time:    a.Moonset,
-		date:    day.Date,
-		loc:     loc,
-		f:       func(r *weather.Record) { r.MoonUp = &zero },
-		records: records,
-	})
-	t.processAstro(astroConversion{
-		time: a.Sunset,
-		date: day.Date,
-		loc:  loc,
-		f: func(r *weather.Record) {
-			f := convert.StrToF(a.MoonIllumination, "moon illumination")
-			ratio := convert.PercentToRatio(f)
-			r.FullMoonRatio = &ratio
-		},
-		records: records,
-	})
-}
-
 type astroConversion struct {
-	time    string
-	date    string
-	loc     *time.Location
-	f       func(record *weather.Record)
-	records *[]weather.Record
+	time   string
+	date   string
+	loc    *time.Location
+	f      func(record *weather.AstroEvent)
+	events *[]weather.AstroEvent
 }
 
-func (t TheGlobalWeather) processAstro(c astroConversion) {
+func (t *TheGlobalWeather) processAstro(c astroConversion) {
 	joined := c.date + " " + c.time
 	stamp, err := time.ParseInLocation("2006-01-02 03:04 PM", joined, c.loc)
 	if err != nil {
@@ -147,11 +153,11 @@ func (t TheGlobalWeather) processAstro(c astroConversion) {
 		//  and that's okay, we don't want to do anything with the value.
 		return
 	}
-	r := weather.Record{
+	r := weather.AstroEvent{
 		Time: stamp,
 	}
 	c.f(&r)
-	*c.records = append(*c.records, r)
+	*c.events = append(*c.events, r)
 }
 
 type tgwForecast struct {

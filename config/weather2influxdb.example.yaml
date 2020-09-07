@@ -15,12 +15,19 @@ forecast:
     enabled: no
     retention_policy: history_rp
     measurement_name: forecast_history
-  sources:
+
+astronomy:
+  enabled: yes
+  measurement_name: astronomy
+
+sources:
+  enabled:
     - nws
     - visualcrossing
     - theglobalweather
-  http_cache_dir: /tmp/weather2influxdb-cache
   visualcrossing:
     key: your_key_here
   theglobalweather:
     key: your_key_here
+
+http_cache_dir: /tmp/weather2influxdb-cache

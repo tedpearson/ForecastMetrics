@@ -15,11 +15,10 @@ import (
 
 type VisualCrossing struct {
 	Key string
+	forecast vcForecast
 }
 
-func (v VisualCrossing) GetWeather(lat string, lon string, retryer http.Retryer) ([]weather.Record, error) {
-	// location can be lat,lon in decimal degrees!
-	// alertLevel=summary for alerts
+func (v *VisualCrossing) Init(lat string, lon string, retryer http.Retryer) error {
 	base := "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/weatherdata/forecast?"
 	q := url.Values{}
 	q.Add("aggregateHours", "1")
@@ -35,27 +34,23 @@ func (v VisualCrossing) GetWeather(lat string, lon string, retryer http.Retryer)
 	log.Println("Getting VisualCrossing forecast")
 	body, err := retryer.RetryRequest(base+q.Encode(), off)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer cleanup(body)
 
 	var forecast vcForecast
 	err = json.NewDecoder(body).Decode(&forecast)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
-	records, err := v.transformForecast(forecast.Location.Values)
-	if err != nil {
-		return nil, err
-	}
-	return records, nil
+	v.forecast = forecast
+	return nil
 }
 
-func (v VisualCrossing) transformForecast(measurements []vcMeasurement) ([]weather.Record, error) {
-	// stop when things become null. (maybe, or maybe we skip null points)
-	values := make([]weather.Record, 0, len(measurements))
-	var lastAstro time.Time
-	for _, m := range measurements {
+func (v *VisualCrossing) GetWeather() (weather.Records, error) {
+	empty := weather.Records{}
+	values := make([]weather.Record, 0, len(v.forecast.Location.Values))
+	for _, m := range v.forecast.Location.Values {
 		// note: after 7 days, the forecast data is every 3 hours
 		//       but the other 2 hours are still in the output
 		//       with null values for everything except precip/datetime/datetimeStr
@@ -65,7 +60,7 @@ func (v VisualCrossing) transformForecast(measurements []vcMeasurement) ([]weath
 		}
 		t, err := time.Parse(time.RFC3339, m.DatetimeStr)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return empty, errors.WithStack(err)
 		}
 		wdir := int(*m.Wdir)
 		skyCover := convert.PercentToRatio(*m.CloudCover)
@@ -83,29 +78,47 @@ func (v VisualCrossing) transformForecast(measurements []vcMeasurement) ([]weath
 			PrecipitationAmount:      m.Precip,
 			SnowAmount:               convert.NilToZero(m.Snow),
 		}
+		values = append(values, record)
+	}
+	return weather.Records{Values: values}, nil
+}
+
+func (v *VisualCrossing) GetAstrocast() (weather.AstroEvents, error) {
+	empty := weather.AstroEvents{}
+	// 3 events per day for 16 days
+	values := make([]weather.AstroEvent, 0, 3*16)
+	var lastAstro time.Time
+	for _, m := range v.forecast.Location.Values {
+		if m.Temp == nil {
+			continue
+		}
+		t, err := time.Parse(time.RFC3339, m.DatetimeStr)
+		if err != nil {
+			return empty, errors.WithStack(err)
+		}
 		if lastAstro.Day() != t.Day() {
 			lastAstro = t
 			// do sunrise/sunset
 			stamp, err := time.Parse(time.RFC3339, *m.Sunrise)
 			if err != nil {
-				return nil, errors.WithStack(err)
+				return empty, errors.WithStack(err)
 			}
 			one := 1
 			zero := 0
-			sunrise := weather.Record{
+			sunrise := weather.AstroEvent{
 				Time:  stamp,
 				SunUp: &one,
 			}
 			stamp, err = time.Parse(time.RFC3339, *m.Sunset)
 			if err != nil {
-				return nil, errors.WithStack(err)
+				return empty, errors.WithStack(err)
 			}
 			// visualcrossing moon phase:
 			// 0   = new moon
 			// 0.5 = full moon
 			// 1   = new moon again
 			moonRatio := convert.Round(2.0*math.Abs(*m.MoonPhase-0.5), 2)
-			sunset := weather.Record{
+			sunset := weather.AstroEvent{
 				Time:          stamp,
 				SunUp:         &zero,
 				FullMoonRatio: &moonRatio,
@@ -113,9 +126,8 @@ func (v VisualCrossing) transformForecast(measurements []vcMeasurement) ([]weath
 			values = append(values, sunrise)
 			values = append(values, sunset)
 		}
-		values = append(values, record)
 	}
-	return values, nil
+	return weather.AstroEvents{Values: values}, nil
 }
 
 func feelsLike(temp *float64, heatIndex *float64, windChill *float64) *float64 {
