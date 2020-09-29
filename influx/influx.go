@@ -24,11 +24,9 @@ func New(config Config) Writer {
 
 func (w *Writer) WriteMeasurements(bucket string, points []*write.Point) error {
 	writeApi := w.client.WriteAPIBlocking("", bucket)
-	for _, point := range points {
-		err := writeApi.WritePoint(context.Background(), point)
-		if err != nil {
-			return errors.WithStack(err)
-		}
+	err := writeApi.WritePoint(context.Background(), points...)
+	if err != nil {
+		return errors.WithStack(err)
 	}
 	return nil
 }
