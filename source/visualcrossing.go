@@ -117,7 +117,7 @@ func (v *VisualCrossing) GetAstrocast() (weather.AstroEvents, error) {
 			// 0   = new moon
 			// 0.5 = full moon
 			// 1   = new moon again
-			moonRatio := convert.Round(2.0*math.Abs(*m.MoonPhase-0.5), 2)
+			moonRatio := 1 - convert.Round(2.0*math.Abs(*m.MoonPhase-0.5), 2)
 			sunset := weather.AstroEvent{
 				Time:          stamp,
 				SunUp:         &zero,
