@@ -61,9 +61,6 @@ large amounts for my personal forecast dashboard is just silly.
     a fraction of a cent per call, which is much better than paying
     tens or hundreds of US dollars a month.
 
-### TBD:
-- attach screenshots of my forecast dashboards
-
 [release]: https://github.com/tedpearson/weather2influxdb/releases
 [config-example]: https://github.com/tedpearson/weather2influxdb/blob/master/config/weather2influxdb.example.yaml
 [install-go]: https://golang.org/dl/
