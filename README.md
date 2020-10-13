@@ -7,9 +7,7 @@ sources in InfluxDB.
 - National Weather Service (NWS)
 - VisualCrossing
 - TheGlobalWeather
-
-#### Future potential sources:
-- None planned at this time, due to not meeting the below
+- No other sources planned at this time, due to not meeting the below
 criteria (7 day hourly forecast, reasonably priced or free)
 - Open an issue if you find a worthy source!
 
@@ -26,11 +24,17 @@ criteria (7 day hourly forecast, reasonably priced or free)
 - `go build`
 
 ### To run:
-- Create a config file referencing the [example][config-example]
-- Place the config in `./config`, `.` or `/usr/local/etc`
-- `./weather2influxdb`
+- Create a config file named `weather2influxdb.yaml` referencing the [example][config-example]
+- Place the config in `./config/`, `./`, or `/usr/local/etc/`
+- Run the binary: `./weather2influxdb`
 
-### Rationale behind included/planned sources:
+## Grafana Dashboard
+I've included my [grafana dashboard definition](grafana/dashboard.json) in the repo. 
+Here is a screenshot of what it looks like when configured correctly.
+I use this dashboard daily for my local weather forecast.
+![grafana dashboard](grafana/dashboard.png)
+
+## Rationale behind included/planned sources:
 I was looking for a replacement for DarkSky, who were bought by
 Apple and will be retiring their API at the end of 2021.
 DarkSky had the best forecasts and a generous free version,
@@ -59,8 +63,6 @@ large amounts for my personal forecast dashboard is just silly.
 
 ### TBD:
 - attach screenshots of my forecast dashboards
-- Implement future sources list
-- Explain the config & how to run
 
 [release]: https://github.com/tedpearson/weather2influxdb/releases
 [config-example]: https://github.com/tedpearson/weather2influxdb/blob/master/config/weather2influxdb.example.yaml
