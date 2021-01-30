@@ -123,11 +123,17 @@ func (n *NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) 
 			measurements: props.IceAccumulation,
 			setter:       weather.SetIceAmount,
 			conversion:   convert.MmToIn,
+			aggregation: func(hours int, val float64) float64 {
+				return val / float64(hours)
+			},
 		},
 		{
 			measurements: props.SnowfallAmount,
 			setter:       weather.SetSnowAmount,
 			conversion:   convert.MmToIn,
+			aggregation: func(hours int, val float64) float64 {
+				return val / float64(hours)
+			},
 		},
 	}
 
