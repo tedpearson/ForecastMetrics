@@ -13,20 +13,43 @@ criteria (7 day hourly forecast, reasonably priced or free)
 
 ## Usage:
 
-### Either... Install a binary
-- Download a binary from the latest [Release][release]
-- `chmod +x` the binary
+### Install
+- Download a binary from the latest [Release][release] if your architecture is available
 
-### Or... Build from source
-- Clone this repo
-- [Install Go][install-go]
-- `cd weather2influxdb`
-- `go build`
+      curl -O https://github.com/tedpearson/weather2influxdb/releases/download/v1.1.0/weather2influxdb-linux-arm
 
-### To run:
-- Create a config file named `weather2influxdb.yaml` referencing the [example][config-example]
-- Place the config in `./config/`, `./`, or `/usr/local/etc/`
-- Run the binary: `./weather2influxdb`
+- Make the binary executable
+
+      chmod +x weather2influxdb-linux-arm
+
+- If your architecture is not avaialable, you'll need to build from source:
+  - Clone this repo
+  - [Install Go][install-go]
+  -
+        cd weather2influxdb
+        go build
+
+### Configure
+
+- Get the example config
+
+      curl https://raw.githubusercontent.com/tedpearson/weather2influxdb/master/config/weather2influxdb.example.yaml > weather2influxdb.yaml
+
+- Modify the config with your own values for:
+  - location(s)
+  - influxdb connection
+  - desired influx measurement names
+  - which weather sources to enable
+  - add your own key for limited access/pay sources
+
+- Place the config file either in the same directory with weather2influxdb, in `/usr/local/etc/`, or
+  in a `config` directory next to weather2influxdb.
+      
+
+### Run
+There are no command line options, so just run the binary like this:
+
+    ./weather2influxdb
 
 ## Grafana Dashboard
 I've included my [grafana dashboard definition](grafana/dashboard.json) in the repo. 
