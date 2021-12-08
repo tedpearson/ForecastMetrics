@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"time"
+
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
 	"github.com/spf13/viper"
@@ -8,14 +11,12 @@ import (
 	"github.com/tedpearson/weather2influxdb/influx"
 	"github.com/tedpearson/weather2influxdb/source"
 	"github.com/tedpearson/weather2influxdb/weather"
-	"log"
-	"time"
 )
 
 type App struct {
 	forecasters  map[string]weather.Forecaster
-	forecastTime int64
-	writer       influx.Writer
+	forecastTime string
+	writer       *influx.Writer
 	retryer      http.Retryer
 	config       Config
 }
@@ -40,10 +41,14 @@ func main() {
 	retryer := http.Retryer{
 		Client: client,
 	}
+	writer, err := influx.New(config.InfluxDB)
+	if err != nil {
+		log.Fatalf("Couldn't connect to influx: %+v", err)
+	}
 	app := App{
 		forecasters:  MakeForecasters(config),
-		forecastTime: time.Now().Truncate(time.Hour).Unix() * 1000,
-		writer:       influx.New(config.InfluxDB),
+		forecastTime: time.Now().Format("2006-01-02-15"),
+		writer:       writer,
 		retryer:      retryer,
 		config:       config,
 	}
@@ -81,44 +86,31 @@ func (app App) RunForecast(src string, loc Location) {
 		log.Printf("%+v", err)
 		return
 	}
+	forecastOptions := weather.WriteOptions{
+		ForecastSource:  src,
+		MeasurementName: c.Forecast.MeasurementName,
+		Location:        loc.Name,
+		ForecastTime:    app.forecastTime,
+		Database:        c.InfluxDB.Database,
+	}
+
 	// write forecast
 	log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(records.Values), c.Forecast.MeasurementName, src)
-	err = app.writer.WriteMeasurements(c.InfluxDB.Database,
-		records.ToPoints(weather.WriteOptions{
-			ForecastSource:  src,
-			MeasurementName: c.Forecast.MeasurementName,
-			Location:        loc.Name,
-		}))
+	err = app.writer.WriteMeasurements(
+		records.ToPoints(forecastOptions))
 	if err != nil {
 		log.Printf("%+v", err)
 	}
-	// write forecast history
-	if c.Forecast.History.Enabled {
-		log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(records.Values),
-			c.Forecast.History.MeasurementName, src)
-		err = app.writer.WriteMeasurements(c.InfluxDB.Database+"/"+c.Forecast.History.RetentionPolicy,
-			records.ToPoints(weather.WriteOptions{
-				ForecastSource:  src,
-				MeasurementName: c.Forecast.History.MeasurementName,
-				Location:        loc.Name,
-				ForecastTime:    &app.forecastTime,
-			}))
-		if err != nil {
-			log.Printf("%+v", err)
-		}
-	}
 	// write astronomy
+	astronomyOptions := forecastOptions
+	astronomyOptions.MeasurementName = c.Astronomy.MeasurementName
 	if c.Astronomy.Enabled {
-		app.RunAstrocast(forecaster, c.InfluxDB.Database, weather.WriteOptions{
-			ForecastSource:  src,
-			MeasurementName: c.Astronomy.MeasurementName,
-			Location:        loc.Name,
-		})
+		app.RunAstrocast(forecaster, astronomyOptions)
 	}
 
 }
 
-func (app App) RunAstrocast(forecaster weather.Forecaster, database string, options weather.WriteOptions) {
+func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.WriteOptions) {
 	astrocaster, ok := forecaster.(weather.Astrocaster)
 	if ok {
 		events, err := astrocaster.GetAstrocast()
@@ -128,7 +120,7 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, database string, opti
 		}
 		log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(events.Values), options.MeasurementName,
 			options.ForecastSource)
-		err = app.writer.WriteMeasurements(database, events.ToPoints(options))
+		err = app.writer.WriteMeasurements(events.ToPoints(options))
 		if err != nil {
 			log.Printf("%+v", err)
 		}
@@ -146,11 +138,6 @@ type Config struct {
 	InfluxDB  influx.Config
 	Forecast  struct {
 		MeasurementName string `mapstructure:"measurement_name"`
-		History         struct {
-			Enabled         bool
-			RetentionPolicy string `mapstructure:"retention_policy"`
-			MeasurementName string `mapstructure:"measurement_name"`
-		}
 	}
 	Astronomy struct {
 		Enabled         bool

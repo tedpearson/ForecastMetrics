@@ -2,14 +2,15 @@ package source
 
 import (
 	"encoding/json"
+	"log"
+	"net/url"
+	"time"
+
 	"github.com/cenkalti/backoff/v3"
 	"github.com/pkg/errors"
 	"github.com/tedpearson/weather2influxdb/convert"
 	"github.com/tedpearson/weather2influxdb/http"
 	"github.com/tedpearson/weather2influxdb/weather"
-	"log"
-	"net/url"
-	"time"
 )
 
 type TheGlobalWeather struct {
@@ -72,31 +73,31 @@ func (t *TheGlobalWeather) GetAstrocast() (weather.AstroEvents, error) {
 		one := 1
 		zero := 0
 		t.processAstro(astroConversion{
-			time:    a.Sunrise,
-			date:    day.Date,
-			loc:     loc,
-			f:       func(r *weather.AstroEvent) { r.SunUp = &one },
+			time:   a.Sunrise,
+			date:   day.Date,
+			loc:    loc,
+			f:      func(r *weather.AstroEvent) { r.SunUp = &one },
 			events: &events,
 		})
 		t.processAstro(astroConversion{
-			time:    a.Sunset,
-			date:    day.Date,
-			loc:     loc,
-			f:       func(r *weather.AstroEvent) { r.SunUp = &zero },
+			time:   a.Sunset,
+			date:   day.Date,
+			loc:    loc,
+			f:      func(r *weather.AstroEvent) { r.SunUp = &zero },
 			events: &events,
 		})
 		t.processAstro(astroConversion{
-			time:    a.Moonrise,
-			date:    day.Date,
-			loc:     loc,
-			f:       func(r *weather.AstroEvent) { r.MoonUp = &one },
+			time:   a.Moonrise,
+			date:   day.Date,
+			loc:    loc,
+			f:      func(r *weather.AstroEvent) { r.MoonUp = &one },
 			events: &events,
 		})
 		t.processAstro(astroConversion{
-			time:    a.Moonset,
-			date:    day.Date,
-			loc:     loc,
-			f:       func(r *weather.AstroEvent) { r.MoonUp = &zero },
+			time:   a.Moonset,
+			date:   day.Date,
+			loc:    loc,
+			f:      func(r *weather.AstroEvent) { r.MoonUp = &zero },
 			events: &events,
 		})
 		t.processAstro(astroConversion{

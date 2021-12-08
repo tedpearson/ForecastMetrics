@@ -2,19 +2,20 @@ package source
 
 import (
 	"encoding/json"
+	"log"
+	"math"
+	"net/url"
+	"time"
+
 	"github.com/cenkalti/backoff/v3"
 	"github.com/pkg/errors"
 	"github.com/tedpearson/weather2influxdb/convert"
 	"github.com/tedpearson/weather2influxdb/http"
 	"github.com/tedpearson/weather2influxdb/weather"
-	"log"
-	"math"
-	"net/url"
-	"time"
 )
 
 type VisualCrossing struct {
-	Key string
+	Key      string
 	forecast vcForecast
 }
 
@@ -143,7 +144,7 @@ func feelsLike(temp *float64, heatIndex *float64, windChill *float64) *float64 {
 func calcDewpoint(rh float64, tempF float64) *float64 {
 	tempC := convert.FToC(tempF)
 	dpC := (237.3 * (math.Log(rh/100) + ((17.27 * tempC) / (237.3 + tempC)))) /
-			(17.27 - (math.Log(rh/100) + ((17.27 * tempC) / (237.3 + tempC))))
+		(17.27 - (math.Log(rh/100) + ((17.27 * tempC) / (237.3 + tempC))))
 	f := convert.CToF(dpC)
 	return &f
 }

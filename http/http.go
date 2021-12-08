@@ -2,11 +2,12 @@ package http
 
 import (
 	"fmt"
-	"github.com/cenkalti/backoff/v3"
-	"github.com/pkg/errors"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/cenkalti/backoff/v3"
+	"github.com/pkg/errors"
 )
 
 type Retryer struct {

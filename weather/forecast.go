@@ -1,21 +1,22 @@
 package weather
 
 import (
-	"github.com/iancoleman/strcase"
-	"github.com/influxdata/influxdb-client-go/v2"
-	"github.com/influxdata/influxdb-client-go/v2/api/write"
-	"github.com/tedpearson/weather2influxdb/http"
+	"log"
 	"reflect"
-	"strconv"
 	"time"
+
+	"github.com/iancoleman/strcase"
+	influxdb1 "github.com/influxdata/influxdb1-client/v2"
+	"github.com/pkg/errors"
+	"github.com/tedpearson/weather2influxdb/http"
 )
 
-
 type WriteOptions struct {
+	Database        string
 	ForecastSource  string
 	MeasurementName string
 	Location        string
-	ForecastTime    *int64
+	ForecastTime    string
 }
 
 type Record struct {
@@ -37,47 +38,64 @@ type Records struct {
 	Values []Record
 }
 
-func (rs Records) ToPoints(options WriteOptions) []*write.Point {
-	ps := make([]*write.Point, len(rs.Values))
-	for i, r := range rs.Values {
-		ps[i] = toPoint(r.Time, r, options)
+func (rs Records) ToPoints(options WriteOptions) (influxdb1.BatchPoints, error) {
+	events := make([]interface{}, len(rs.Values))
+	for i, event := range rs.Values {
+		events[i] = event
 	}
-	return ps
+	return toPoints(events, options)
 }
 
 type AstroEvent struct {
-	Time                     time.Time
-	SunUp                    *int
-	MoonUp                   *int
+	Time   time.Time
+	SunUp  *int
+	MoonUp *int
 	// this is hard to name. It's not "how bright is the moon" - it's "ratio of current moon phase to the full moon".
-	FullMoonRatio            *float64
+	FullMoonRatio *float64
 }
 
 type AstroEvents struct {
 	Values []AstroEvent
 }
 
-func (as AstroEvents) ToPoints(options WriteOptions) []*write.Point {
-	ps := make([]*write.Point, len(as.Values))
-	for i, a := range as.Values {
-		ps[i] = toPoint(a.Time, a, options)
+func (as AstroEvents) ToPoints(options WriteOptions) (influxdb1.BatchPoints, error) {
+	events := make([]interface{}, len(as.Values))
+	for i, event := range as.Values {
+		events[i] = event
 	}
-	return ps
+	return toPoints(events, options)
 }
 
-func toPoint(t time.Time, i interface{}, options WriteOptions) *write.Point {
-	e := reflect.ValueOf(i)
-	p := influxdb2.NewPointWithMeasurement(options.MeasurementName).
-		AddTag("source", options.ForecastSource).
-		AddTag("location", options.Location).
-		SetTime(t)
-	if options.ForecastTime != nil {
-		p.AddField("forecast_time", *options.ForecastTime)
-		p.AddTag("forecast_time_tag", strconv.FormatInt(*options.ForecastTime, 10))
+func toPoints(items []interface{}, options WriteOptions) (influxdb1.BatchPoints, error) {
+	batchPoints, err := influxdb1.NewBatchPoints(influxdb1.BatchPointsConfig{
+		Database: options.Database,
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
+	for _, item := range items {
+		t := reflect.ValueOf(item).FieldByName("Time").Interface().(time.Time)
+		point, err := toPoint(t, item, options)
+		if err != nil {
+			log.Printf("Failed to create point: %+v", err)
+			continue
+		}
+		batchPoints.AddPoint(point)
+	}
+	return batchPoints, nil
+}
+
+func toPoint(t time.Time, i interface{}, options WriteOptions) (*influxdb1.Point, error) {
+	tags := map[string]string{
+		"source":        options.ForecastSource,
+		"location":      options.Location,
+		"forecast_time": options.ForecastTime,
+	}
+	fields := make(map[string]interface{})
+	e := reflect.ValueOf(i)
 	for i := 0; i < e.NumField(); i++ {
 		name := strcase.ToSnake(e.Type().Field(i).Name)
-		// note: skip time field already added above
+		// note: skip time field (added when creating the point)
 		if name == "time" {
 			continue
 		}
@@ -87,9 +105,9 @@ func toPoint(t time.Time, i interface{}, options WriteOptions) *write.Point {
 			continue
 		}
 		val := ptr.Elem().Interface()
-		p.AddField(name, val)
+		fields[name] = val
 	}
-	return p
+	return influxdb1.NewPoint(options.MeasurementName, tags, fields, t)
 }
 
 type Initer interface {

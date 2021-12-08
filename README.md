@@ -6,7 +6,7 @@ sources in InfluxDB.
 #### Currently supported sources:
 - National Weather Service (NWS)
 - VisualCrossing
-- TheGlobalWeather
+- ~~TheGlobalWeather~~ This source appears to have shut down as of December 2021.
 - No other sources planned at this time, due to not meeting the below
 criteria (7 day hourly forecast, reasonably priced or free)
 - Open an issue if you find a worthy source!
@@ -80,9 +80,10 @@ large amounts for my personal forecast dashboard is just silly.
     - This is why visualcrossing is a supported source,
     because their free tier supports 250 forecasts/day.
 - I also considered Low-cost APIs.
-    - Theglobalweather is a pay-as-you-go api that you only pay 
+    - ~~Theglobalweather is a pay-as-you-go api that you only pay 
     a fraction of a cent per call, which is much better than paying
-    tens or hundreds of US dollars a month.
+    tens or hundreds of US dollars a month.~~ Appears to have shut
+    down as of December 2021.
 
 [release]: https://github.com/tedpearson/weather2influxdb/releases
 [config-example]: https://github.com/tedpearson/weather2influxdb/blob/master/config/weather2influxdb.example.yaml

@@ -7,20 +7,21 @@ package source
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"math"
+	"strings"
+	"time"
+
 	"github.com/cenkalti/backoff/v3"
 	"github.com/pkg/errors"
 	"github.com/rickb777/date/period"
 	"github.com/tedpearson/weather2influxdb/convert"
 	"github.com/tedpearson/weather2influxdb/http"
 	"github.com/tedpearson/weather2influxdb/weather"
-	"io"
-	"log"
-	"math"
-	"strings"
-	"time"
 )
 
-type NWS struct{
+type NWS struct {
 	forecast nwsForecast
 }
 

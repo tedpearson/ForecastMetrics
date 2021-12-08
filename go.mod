@@ -1,14 +1,13 @@
 module github.com/tedpearson/weather2influxdb
 
-go 1.15
+go 1.16
 
 require (
 	github.com/cenkalti/backoff/v3 v3.2.2
-	github.com/deepmap/oapi-codegen v1.3.13 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/iancoleman/strcase v0.1.2
-	github.com/influxdata/influxdb-client-go/v2 v2.0.1
+	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect

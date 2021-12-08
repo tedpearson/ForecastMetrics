@@ -11,10 +11,6 @@ influxdb:
 
 forecast:
   measurement_name: forecast
-  history:
-    enabled: no
-    retention_policy: history_rp
-    measurement_name: forecast_history
 
 astronomy:
   enabled: yes
@@ -24,10 +20,7 @@ sources:
   enabled:
     - nws
     - visualcrossing
-    - theglobalweather
   visualcrossing:
-    key: your_key_here
-  theglobalweather:
     key: your_key_here
 
 http_cache_dir: /tmp/weather2influxdb-cache
