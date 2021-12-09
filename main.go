@@ -1,24 +1,27 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"github.com/tedpearson/weather2influxdb/http"
+	myhttp "github.com/tedpearson/weather2influxdb/http"
 	"github.com/tedpearson/weather2influxdb/influx"
 	"github.com/tedpearson/weather2influxdb/source"
 	"github.com/tedpearson/weather2influxdb/weather"
 )
 
 type App struct {
-	forecasters  map[string]weather.Forecaster
-	forecastTime string
-	writer       *influx.Writer
-	retryer      http.Retryer
-	config       Config
+	forecasters map[string]weather.Forecaster
+	writer      *influx.Writer
+	retryer     myhttp.Retryer
+	config      Config
 }
 
 func main() {
@@ -38,7 +41,7 @@ func main() {
 
 	client := httpcache.NewTransport(diskcache.New(config.HttpCacheDir)).Client()
 	//client.Timeout = 2 * time.Second
-	retryer := http.Retryer{
+	retryer := myhttp.Retryer{
 		Client: client,
 	}
 	writer, err := influx.New(config.InfluxDB)
@@ -46,11 +49,10 @@ func main() {
 		log.Fatalf("Couldn't connect to influx: %+v", err)
 	}
 	app := App{
-		forecasters:  MakeForecasters(config),
-		forecastTime: time.Now().Format("2006-01-02-15"),
-		writer:       writer,
-		retryer:      retryer,
-		config:       config,
+		forecasters: MakeForecasters(config),
+		writer:      writer,
+		retryer:     retryer,
+		config:      config,
 	}
 
 	for _, location := range config.Locations {
@@ -90,16 +92,31 @@ func (app App) RunForecast(src string, loc Location) {
 		ForecastSource:  src,
 		MeasurementName: c.Forecast.MeasurementName,
 		Location:        loc.Name,
-		ForecastTime:    app.forecastTime,
 		Database:        c.InfluxDB.Database,
+		Period:          "future",
 	}
 
+	DeleteSeries(c.InfluxDB.Host, c.Forecast.MeasurementName, c.Astronomy.MeasurementName)
 	// write forecast
-	log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(records.Values), c.Forecast.MeasurementName, src)
+	log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(records.Values),
+		c.Forecast.MeasurementName, src)
 	err = app.writer.WriteMeasurements(
 		records.ToPoints(forecastOptions))
 	if err != nil {
 		log.Printf("%+v", err)
+	}
+	// write next hour to past forecast measurement
+	nextHour := time.Now().Truncate(time.Hour).Add(time.Hour * 2)
+	for _, record := range records.Values {
+		if nextHour.Equal(record.Time) {
+			nextHourRecord := weather.Records{
+				Values: []weather.Record{record},
+			}
+			nextHourOptions := forecastOptions
+			nextHourOptions.Period = "past"
+			err = app.writer.WriteMeasurements(nextHourRecord.ToPoints(nextHourOptions))
+			break
+		}
 	}
 	// write astronomy
 	astronomyOptions := forecastOptions
@@ -107,7 +124,20 @@ func (app App) RunForecast(src string, loc Location) {
 	if c.Astronomy.Enabled {
 		app.RunAstrocast(forecaster, astronomyOptions)
 	}
+}
 
+func DeleteSeries(host string, measurements ...string) {
+	// delete series from victoriametrics
+	url := `%s/api/v1/admin/tsdb/delete_series`
+	joined := strings.Join(measurements, "|")
+	// note: kinda dangerous delete pattern. easy to accidentally delete everything
+	match := fmt.Sprintf(`{__name__=~"(%s).%%2B",period="future"}`, joined)
+	_, err := http.PostForm(fmt.Sprintf(url, host), map[string][]string{
+		"match": {match},
+	})
+	if err != nil {
+		panic(errors.Wrap(err, "Failed to delete series from victoriametrics."))
+	}
 }
 
 func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.WriteOptions) {
@@ -123,6 +153,19 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 		err = app.writer.WriteMeasurements(events.ToPoints(options))
 		if err != nil {
 			log.Printf("%+v", err)
+		}
+		// write next hour to past astronmy measurement
+		nextHour := time.Now().Truncate(time.Hour).Add(time.Hour)
+		for _, event := range events.Values {
+			if nextHour.Equal(event.Time) {
+				nextHourEvent := weather.AstroEvents{
+					Values: []weather.AstroEvent{event},
+				}
+				nextHourOptions := options
+				nextHourOptions.Period = "past"
+				err = app.writer.WriteMeasurements(nextHourEvent.ToPoints(nextHourOptions))
+				break
+			}
 		}
 	}
 }

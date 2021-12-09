@@ -16,7 +16,7 @@ type WriteOptions struct {
 	ForecastSource  string
 	MeasurementName string
 	Location        string
-	ForecastTime    string
+	Period          string
 }
 
 type Record struct {
@@ -87,9 +87,9 @@ func toPoints(items []interface{}, options WriteOptions) (influxdb1.BatchPoints,
 
 func toPoint(t time.Time, i interface{}, options WriteOptions) (*influxdb1.Point, error) {
 	tags := map[string]string{
-		"source":        options.ForecastSource,
-		"location":      options.Location,
-		"forecast_time": options.ForecastTime,
+		"source":   options.ForecastSource,
+		"location": options.Location,
+		"period":   options.Period,
 	}
 	fields := make(map[string]interface{})
 	e := reflect.ValueOf(i)
