@@ -75,6 +75,10 @@ func toPoints(items []interface{}, options WriteOptions) (influxdb1.BatchPoints,
 	}
 	for _, item := range items {
 		t := reflect.ValueOf(item).FieldByName("Time").Interface().(time.Time)
+		// only send future datapoints.
+		if t.Before(time.Now().Add(time.Hour + 1)) {
+			continue
+		}
 		point, err := toPoint(t, item, options)
 		if err != nil {
 			log.Printf("Failed to create point: %+v", err)
