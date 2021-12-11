@@ -108,7 +108,7 @@ func (app App) RunForecast(src string, loc Location) {
 		log.Printf("%+v", err)
 	}
 	// write next hour to past forecast measurement
-	nextHour := time.Now().Truncate(time.Hour).Add(time.Hour * 2)
+	nextHour := time.Now().Truncate(time.Hour).Add(time.Hour)
 	for _, record := range records.Values {
 		if nextHour.Equal(record.Time) {
 			nextHourRecord := weather.Records{
