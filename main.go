@@ -148,6 +148,7 @@ func (app App) DeleteSeries(host string, measurements ...string) {
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to delete series from victoriametrics."))
 	}
+	time.Sleep(time.Second * 2)
 }
 
 func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.WriteOptions) {
