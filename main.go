@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -96,7 +97,7 @@ func (app App) RunForecast(src string, loc Location) {
 		Period:          "future",
 	}
 
-	DeleteSeries(c.InfluxDB.Host, c.Forecast.MeasurementName, c.Astronomy.MeasurementName)
+	app.DeleteSeries(c.InfluxDB.Host, c.Forecast.MeasurementName, c.Astronomy.MeasurementName)
 	// write forecast
 	log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(records.Values),
 		c.Forecast.MeasurementName, src)
@@ -126,15 +127,24 @@ func (app App) RunForecast(src string, loc Location) {
 	}
 }
 
-func DeleteSeries(host string, measurements ...string) {
+func (app App) DeleteSeries(host string, measurements ...string) {
 	// delete series from victoriametrics
-	url := `%s/api/v1/admin/tsdb/delete_series`
+	path := fmt.Sprintf(`%s/api/v1/admin/tsdb/delete_series`, host)
 	joined := strings.Join(measurements, "|")
 	// note: kinda dangerous delete pattern. easy to accidentally delete everything
-	match := fmt.Sprintf(`{__name__=~"(%s).%%2B",period="future"}`, joined)
-	_, err := http.PostForm(fmt.Sprintf(url, host), map[string][]string{
+	match := fmt.Sprintf(`{__name__=~"(%s).+",period="future"}`, joined)
+	values := url.Values{
 		"match": {match},
-	})
+	}
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", path, strings.NewReader(values.Encode()))
+	if err != nil {
+		panic(errors.Wrap(err, "Failed to create http request"))
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ic := app.config.InfluxDB
+	req.SetBasicAuth(ic.User, ic.Password)
+	_, err = client.Do(req)
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to delete series from victoriametrics."))
 	}
