@@ -55,6 +55,8 @@ func main() {
 		retryer:     retryer,
 		config:      config,
 	}
+	app.DeleteSeries(config.InfluxDB.Host, config.Forecast.MeasurementName,
+		config.Astronomy.MeasurementName)
 
 	for _, location := range config.Locations {
 		for _, src := range config.Sources.Enabled {
@@ -97,7 +99,6 @@ func (app App) RunForecast(src string, loc Location) {
 		Period:          "future",
 	}
 
-	app.DeleteSeries(c.InfluxDB.Host, c.Forecast.MeasurementName, c.Astronomy.MeasurementName)
 	// write forecast
 	log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(records.Values),
 		c.Forecast.MeasurementName, src)
@@ -148,7 +149,6 @@ func (app App) DeleteSeries(host string, measurements ...string) {
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to delete series from victoriametrics."))
 	}
-	time.Sleep(time.Second * 10)
 }
 
 func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.WriteOptions) {
