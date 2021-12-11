@@ -159,8 +159,8 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 			log.Printf("%+v", err)
 			return
 		}
-		log.Printf(`Writing %d points to "%s" in InfluxDB for "%s"`, len(events.Values), options.MeasurementName,
-			options.ForecastSource)
+		log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"`, len(events.Values),
+			options.MeasurementName, options.ForecastSource, options.Location)
 		err = app.writer.WriteMeasurements(events.ToPoints(options))
 		if err != nil {
 			log.Printf("%+v", err)
