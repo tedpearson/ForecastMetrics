@@ -11,12 +11,19 @@ import (
 	"github.com/tedpearson/weather2influxdb/http"
 )
 
+type Period string
+
+const (
+	Past   Period = "past"
+	Future Period = "future"
+)
+
 type WriteOptions struct {
 	Database        string
 	ForecastSource  string
 	MeasurementName string
 	Location        string
-	Period          string
+	Period          Period
 }
 
 type Record struct {
@@ -76,7 +83,7 @@ func toPoints(items []interface{}, options WriteOptions) (influxdb1.BatchPoints,
 	for _, item := range items {
 		t := reflect.ValueOf(item).FieldByName("Time").Interface().(time.Time)
 		// only send future datapoints.
-		if t.Before(time.Now().Add(time.Hour + 1)) {
+		if options.Period == Future && t.Before(time.Now().Add(time.Hour+1)) {
 			continue
 		}
 		point, err := toPoint(t, item, options)
@@ -93,7 +100,7 @@ func toPoint(t time.Time, i interface{}, options WriteOptions) (*influxdb1.Point
 	tags := map[string]string{
 		"source":   options.ForecastSource,
 		"location": options.Location,
-		"period":   options.Period,
+		"period":   string(options.Period),
 	}
 	fields := make(map[string]interface{})
 	e := reflect.ValueOf(i)

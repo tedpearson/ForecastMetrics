@@ -96,7 +96,7 @@ func (app App) RunForecast(src string, loc Location) {
 		MeasurementName: c.Forecast.MeasurementName,
 		Location:        loc.Name,
 		Database:        c.InfluxDB.Database,
-		Period:          "future",
+		Period:          weather.Future,
 	}
 
 	// write forecast
@@ -116,7 +116,7 @@ func (app App) RunForecast(src string, loc Location) {
 				Values: []weather.Record{record},
 			}
 			nextHourOptions := forecastOptions
-			nextHourOptions.Period = "past"
+			nextHourOptions.Period = weather.Past
 			err = app.writer.WriteMeasurements(nextHourRecord.ToPoints(nextHourOptions))
 			break
 		}
@@ -134,7 +134,7 @@ func (app App) DeleteSeries(host string, measurements ...string) {
 	path := fmt.Sprintf(`%s/api/v1/admin/tsdb/delete_series`, host)
 	joined := strings.Join(measurements, "|")
 	// note: kinda dangerous delete pattern. easy to accidentally delete everything
-	match := fmt.Sprintf(`{__name__=~"(%s).+",period="future"}`, joined)
+	match := fmt.Sprintf(`{__name__=~"(%s).+",period="%s"}`, joined, weather.Future)
 	values := url.Values{
 		"match": {match},
 	}
@@ -174,7 +174,7 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 					Values: []weather.AstroEvent{event},
 				}
 				nextHourOptions := options
-				nextHourOptions.Period = "past"
+				nextHourOptions.Period = weather.Past
 				err = app.writer.WriteMeasurements(nextHourEvent.ToPoints(nextHourOptions))
 				break
 			}
