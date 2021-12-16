@@ -1,16 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	myhttp "github.com/tedpearson/weather2influxdb/http"
 	"github.com/tedpearson/weather2influxdb/influx"
@@ -55,8 +50,6 @@ func main() {
 		retryer:     retryer,
 		config:      config,
 	}
-	app.DeleteSeries(config.InfluxDB.Host, config.Forecast.MeasurementName,
-		config.Astronomy.MeasurementName)
 
 	for _, location := range config.Locations {
 		for _, src := range config.Sources.Enabled {
@@ -96,13 +89,13 @@ func (app App) RunForecast(src string, loc Location) {
 		MeasurementName: c.Forecast.MeasurementName,
 		Location:        loc.Name,
 		Database:        c.InfluxDB.Database,
-		Period:          weather.Future,
+		ForecastTime:    time.Now().Truncate(time.Hour).Format("2006-01-02:15"),
 	}
 
 	// write forecast
 
-	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"`, len(records.Values),
-		loc.Name, src, c.Forecast.MeasurementName)
+	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`,
+		len(records.Values), loc.Name, src, c.Forecast.MeasurementName, forecastOptions.ForecastTime)
 	err = app.writer.WriteMeasurements(
 		records.ToPoints(forecastOptions))
 	if err != nil {
@@ -116,7 +109,7 @@ func (app App) RunForecast(src string, loc Location) {
 				Values: []weather.Record{record},
 			}
 			nextHourOptions := forecastOptions
-			nextHourOptions.Period = weather.Past
+			nextHourOptions.ForecastTime = "0"
 			err = app.writer.WriteMeasurements(nextHourRecord.ToPoints(nextHourOptions))
 			break
 		}
@@ -129,29 +122,6 @@ func (app App) RunForecast(src string, loc Location) {
 	}
 }
 
-func (app App) DeleteSeries(host string, measurements ...string) {
-	// delete series from victoriametrics
-	path := fmt.Sprintf(`%s/api/v1/admin/tsdb/delete_series`, host)
-	joined := strings.Join(measurements, "|")
-	// note: kinda dangerous delete pattern. easy to accidentally delete everything
-	match := fmt.Sprintf(`{__name__=~"(%s).+",period="%s"}`, joined, weather.Future)
-	values := url.Values{
-		"match": {match},
-	}
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", path, strings.NewReader(values.Encode()))
-	if err != nil {
-		panic(errors.Wrap(err, "Failed to create http request"))
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	ic := app.config.InfluxDB
-	req.SetBasicAuth(ic.User, ic.Password)
-	_, err = client.Do(req)
-	if err != nil {
-		panic(errors.Wrap(err, "Failed to delete series from victoriametrics."))
-	}
-}
-
 func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.WriteOptions) {
 	astrocaster, ok := forecaster.(weather.Astrocaster)
 	if ok {
@@ -160,8 +130,9 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 			log.Printf("%+v", err)
 			return
 		}
-		log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"`, len(events.Values),
-			options.Location, options.ForecastSource, options.MeasurementName)
+		log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`,
+			len(events.Values), options.Location, options.ForecastSource, options.MeasurementName,
+			options.ForecastTime)
 		err = app.writer.WriteMeasurements(events.ToPoints(options))
 		if err != nil {
 			log.Printf("%+v", err)
@@ -174,7 +145,7 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 					Values: []weather.AstroEvent{event},
 				}
 				nextHourOptions := options
-				nextHourOptions.Period = weather.Past
+				nextHourOptions.ForecastTime = "0"
 				err = app.writer.WriteMeasurements(nextHourEvent.ToPoints(nextHourOptions))
 				break
 			}
