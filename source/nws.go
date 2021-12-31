@@ -60,13 +60,13 @@ func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
 	return nil
 }
 
-func (n *NWS) GetWeather() (weather.Records, error) {
-	empty := weather.Records{}
+func (n *NWS) GetWeather() ([]weather.Record, error) {
+	var empty []weather.Record
 	records, err := n.transformForecast(n.forecast)
 	if err != nil {
 		return empty, err
 	}
-	return weather.Records{Values: records}, nil
+	return records, nil
 }
 
 func (n *NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) {

@@ -48,8 +48,8 @@ func (v *VisualCrossing) Init(lat string, lon string, retryer http.Retryer) erro
 	return nil
 }
 
-func (v *VisualCrossing) GetWeather() (weather.Records, error) {
-	empty := weather.Records{}
+func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
+	var empty []weather.Record
 	values := make([]weather.Record, 0, len(v.forecast.Location.Values))
 	for _, m := range v.forecast.Location.Values {
 		// note: after 7 days, the forecast data is every 3 hours
@@ -81,14 +81,15 @@ func (v *VisualCrossing) GetWeather() (weather.Records, error) {
 		}
 		values = append(values, record)
 	}
-	return weather.Records{Values: values}, nil
+	return values, nil
 }
 
-func (v *VisualCrossing) GetAstrocast() (weather.AstroEvents, error) {
-	empty := weather.AstroEvents{}
-	// 3 events per day for 16 days
-	values := make([]weather.AstroEvent, 0, 3*16)
-	var lastAstro time.Time
+func (v *VisualCrossing) GetAstrocast() ([]weather.AstroEvent, error) {
+	var empty []weather.AstroEvent
+	// add 32 points for sunrise and sunset each day
+	values := make([]weather.AstroEvent, 0, len(v.forecast.Location.Values)+32)
+	one := 1
+	zero := 0
 	for _, m := range v.forecast.Location.Values {
 		if m.Temp == nil {
 			continue
@@ -97,38 +98,46 @@ func (v *VisualCrossing) GetAstrocast() (weather.AstroEvents, error) {
 		if err != nil {
 			return empty, errors.WithStack(err)
 		}
-		if lastAstro.Day() != t.Day() {
-			lastAstro = t
-			// do sunrise/sunset
-			stamp, err := time.Parse(time.RFC3339, *m.Sunrise)
-			if err != nil {
-				return empty, errors.WithStack(err)
-			}
-			one := 1
-			zero := 0
-			sunrise := weather.AstroEvent{
-				Time:  stamp,
+		sunrise, err := time.Parse(time.RFC3339, *m.Sunrise)
+		if err != nil {
+			return empty, errors.WithStack(err)
+		}
+		sunset, err := time.Parse(time.RFC3339, *m.Sunset)
+		if err != nil {
+			return empty, errors.WithStack(err)
+		}
+		// if this is the hour before sunrise, insert sunrise
+		if sunrise.Truncate(time.Hour).Equal(t) {
+			values = append(values, weather.AstroEvent{
+				Time:  sunrise,
 				SunUp: &one,
-			}
-			stamp, err = time.Parse(time.RFC3339, *m.Sunset)
-			if err != nil {
-				return empty, errors.WithStack(err)
-			}
+			})
+		}
+		// if this is the hour before sunset, insert sunset + moon ratio
+		if sunset.Truncate(time.Hour).Equal(t) {
 			// visualcrossing moon phase:
 			// 0   = new moon
 			// 0.5 = full moon
 			// 1   = new moon again
 			moonRatio := 1 - convert.Round(2.0*math.Abs(*m.MoonPhase-0.5), 2)
-			sunset := weather.AstroEvent{
-				Time:          stamp,
+			values = append(values, weather.AstroEvent{
+				Time:          sunset,
 				SunUp:         &zero,
 				FullMoonRatio: &moonRatio,
-			}
-			values = append(values, sunrise)
-			values = append(values, sunset)
+			})
 		}
+		// if hour < sunrise or > sunset, 0.
+		// else 1.
+		sunUp := &one
+		if t.Before(sunrise) || t.After(sunset) {
+			sunUp = &zero
+		}
+		values = append(values, weather.AstroEvent{
+			Time:  t,
+			SunUp: sunUp,
+		})
 	}
-	return weather.AstroEvents{Values: values}, nil
+	return values, nil
 }
 
 func feelsLike(temp *float64, heatIndex *float64, windChill *float64) *float64 {

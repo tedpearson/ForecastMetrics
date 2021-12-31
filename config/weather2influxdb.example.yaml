@@ -23,4 +23,5 @@ sources:
   visualcrossing:
     key: your_key_here
 
-http_cache_dir: /tmp/weather2influxdb-cache
+http_cache_dir: /var/lib/weather2influxdb/cache
+state_file: /var/lib/weather2influxdb/state

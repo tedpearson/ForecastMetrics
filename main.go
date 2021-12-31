@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
+	"os"
 	"time"
 
 	"github.com/gregjones/httpcache"
@@ -64,9 +66,6 @@ func MakeForecasters(config Config) map[string]weather.Forecaster {
 		"visualcrossing": &source.VisualCrossing{
 			Key: config.Sources.VisualCrossing.Key,
 		},
-		"theglobalweather": &source.TheGlobalWeather{
-			Key: config.Sources.TheGlobalWeather.Key,
-		},
 	}
 	return sources
 }
@@ -84,39 +83,40 @@ func (app App) RunForecast(src string, loc Location) {
 		log.Printf("%+v", err)
 		return
 	}
+	forecastTime := time.Now().Truncate(time.Hour).Format("2006-01-02:15")
 	forecastOptions := weather.WriteOptions{
 		ForecastSource:  src,
 		MeasurementName: c.Forecast.MeasurementName,
 		Location:        loc.Name,
 		Database:        c.InfluxDB.Database,
-		ForecastTime:    time.Now().Truncate(time.Hour).Format("2006-01-02:15"),
+		ForecastTime:    &forecastTime,
 	}
 
 	// write forecast
 
 	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`,
-		len(records.Values), loc.Name, src, c.Forecast.MeasurementName, forecastOptions.ForecastTime)
+		len(records), loc.Name, src, c.Forecast.MeasurementName, *forecastOptions.ForecastTime)
 	err = app.writer.WriteMeasurements(
-		records.ToPoints(forecastOptions))
+		weather.RecordsToPoints(records, forecastOptions))
 	if err != nil {
 		log.Printf("%+v", err)
 	}
 	// write next hour to past forecast measurement
 	nextHour := time.Now().Truncate(time.Hour).Add(time.Hour)
-	for _, record := range records.Values {
+	for _, record := range records {
 		if nextHour.Equal(record.Time) {
-			nextHourRecord := weather.Records{
-				Values: []weather.Record{record},
-			}
+			nextHourRecord := []weather.Record{record}
 			nextHourOptions := forecastOptions
-			nextHourOptions.ForecastTime = "0"
-			err = app.writer.WriteMeasurements(nextHourRecord.ToPoints(nextHourOptions))
+			f := "0"
+			nextHourOptions.ForecastTime = &f
+			err = app.writer.WriteMeasurements(weather.RecordsToPoints(nextHourRecord, nextHourOptions))
 			break
 		}
 	}
 	// write astronomy
 	astronomyOptions := forecastOptions
 	astronomyOptions.MeasurementName = c.Astronomy.MeasurementName
+	astronomyOptions.ForecastTime = nil
 	if c.Astronomy.Enabled {
 		app.RunAstrocast(forecaster, astronomyOptions)
 	}
@@ -130,25 +130,51 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 			log.Printf("%+v", err)
 			return
 		}
-		log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`,
-			len(events.Values), options.Location, options.ForecastSource, options.MeasurementName,
-			options.ForecastTime)
-		err = app.writer.WriteMeasurements(events.ToPoints(options))
+		// filter points to only those after last written point
+		lastWrittenTime := ReadState(app.config.StateFile)
+		lastTimePoint := lastWrittenTime
+		eventsToWrite := make([]weather.AstroEvent, 0)
+		for _, event := range events {
+			if event.Time.After(lastWrittenTime) {
+				eventsToWrite = append(eventsToWrite, event)
+			}
+			if event.Time.After(lastTimePoint) {
+				lastTimePoint = event.Time
+			}
+		}
+		log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"}`,
+			len(eventsToWrite), options.Location, options.ForecastSource, options.MeasurementName)
+		err = app.writer.WriteMeasurements(weather.AstroToPoints(eventsToWrite, options))
 		if err != nil {
 			log.Printf("%+v", err)
 		}
-		// write next hour to past astronmy measurement
-		nextHour := time.Now().Truncate(time.Hour).Add(time.Hour)
-		for _, event := range events.Values {
-			if nextHour.Equal(event.Time) {
-				nextHourEvent := weather.AstroEvents{
-					Values: []weather.AstroEvent{event},
-				}
-				nextHourOptions := options
-				nextHourOptions.ForecastTime = "0"
-				err = app.writer.WriteMeasurements(nextHourEvent.ToPoints(nextHourOptions))
-				break
-			}
+		// save lastTimePoint
+		WriteState(app.config.StateFile, lastTimePoint)
+	}
+}
+
+func ReadState(stateFile string) time.Time {
+	state, err := os.ReadFile(stateFile)
+	lastWrittenTime := time.Now()
+	if err != nil {
+		log.Printf("Failed to load state: %+v", err)
+	} else {
+		err = json.Unmarshal(state, &lastWrittenTime)
+		if err != nil {
+			log.Printf("Failed to unmarshal state: %+v", err)
+		}
+	}
+	return lastWrittenTime
+}
+
+func WriteState(stateFile string, time time.Time) {
+	newState, err := json.Marshal(time)
+	if err != nil {
+		log.Printf("Failed to marshal state: %+v", err)
+	} else {
+		err := os.WriteFile(stateFile, newState, 0644)
+		if err != nil {
+			log.Printf("Failed to write state: %+v", err)
 		}
 	}
 }
@@ -179,6 +205,7 @@ type Config struct {
 		} `mapstructure:"theglobalweather"`
 	}
 	HttpCacheDir string `mapstructure:"http_cache_dir"`
+	StateFile    string `mapstructure:"state_file"`
 }
 
 // todo:

@@ -16,7 +16,7 @@ type WriteOptions struct {
 	ForecastSource  string
 	MeasurementName string
 	Location        string
-	ForecastTime    string
+	ForecastTime    *string
 }
 
 type Record struct {
@@ -34,13 +34,9 @@ type Record struct {
 	IceAmount                *float64
 }
 
-type Records struct {
-	Values []Record
-}
-
-func (rs Records) ToPoints(options WriteOptions) (influxdb1.BatchPoints, error) {
-	events := make([]interface{}, len(rs.Values))
-	for i, event := range rs.Values {
+func RecordsToPoints(rs []Record, options WriteOptions) (influxdb1.BatchPoints, error) {
+	events := make([]interface{}, len(rs))
+	for i, event := range rs {
 		events[i] = event
 	}
 	return toPoints(events, options)
@@ -54,13 +50,9 @@ type AstroEvent struct {
 	FullMoonRatio *float64
 }
 
-type AstroEvents struct {
-	Values []AstroEvent
-}
-
-func (as AstroEvents) ToPoints(options WriteOptions) (influxdb1.BatchPoints, error) {
-	events := make([]interface{}, len(as.Values))
-	for i, event := range as.Values {
+func AstroToPoints(aes []AstroEvent, options WriteOptions) (influxdb1.BatchPoints, error) {
+	events := make([]interface{}, len(aes))
+	for i, event := range aes {
 		events[i] = event
 	}
 	return toPoints(events, options)
@@ -76,7 +68,8 @@ func toPoints(items []interface{}, options WriteOptions) (influxdb1.BatchPoints,
 	for _, item := range items {
 		t := reflect.ValueOf(item).FieldByName("Time").Interface().(time.Time)
 		// only send future datapoints.
-		if options.ForecastTime != "0" && t.Before(time.Now().Add(time.Hour+1)) {
+		ft := options.ForecastTime
+		if ft != nil && *ft != "0" && t.Before(time.Now().Add(time.Hour+1)) {
 			continue
 		}
 		point, err := toPoint(t, item, options)
@@ -91,9 +84,11 @@ func toPoints(items []interface{}, options WriteOptions) (influxdb1.BatchPoints,
 
 func toPoint(t time.Time, i interface{}, options WriteOptions) (*influxdb1.Point, error) {
 	tags := map[string]string{
-		"source":        options.ForecastSource,
-		"location":      options.Location,
-		"forecast_time": options.ForecastTime,
+		"source":   options.ForecastSource,
+		"location": options.Location,
+	}
+	if options.ForecastTime != nil {
+		tags["forecast_time"] = *options.ForecastTime
 	}
 	fields := make(map[string]interface{})
 	e := reflect.ValueOf(i)
@@ -120,12 +115,12 @@ type Initer interface {
 
 type Forecaster interface {
 	Initer
-	GetWeather() (Records, error)
+	GetWeather() ([]Record, error)
 }
 
 type Astrocaster interface {
 	Initer
-	GetAstrocast() (AstroEvents, error)
+	GetAstrocast() ([]AstroEvent, error)
 }
 
 func SetTemperature(r *Record, v float64) {
