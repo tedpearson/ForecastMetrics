@@ -24,4 +24,4 @@ sources:
     key: your_key_here
 
 http_cache_dir: /var/lib/weather2influxdb/cache
-state_file: /var/lib/weather2influxdb/state
+state_dir: /var/lib/weather2influxdb/state

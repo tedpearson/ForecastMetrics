@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gregjones/httpcache"
@@ -124,33 +125,36 @@ func (app App) RunForecast(src string, loc Location) {
 
 func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.WriteOptions) {
 	astrocaster, ok := forecaster.(weather.Astrocaster)
-	if ok {
-		events, err := astrocaster.GetAstrocast()
-		if err != nil {
-			log.Printf("%+v", err)
-			return
-		}
-		// filter points to only those after last written point
-		lastWrittenTime := ReadState(app.config.StateFile)
-		lastTimePoint := lastWrittenTime
-		eventsToWrite := make([]weather.AstroEvent, 0)
-		for _, event := range events {
-			if event.Time.After(lastWrittenTime) {
-				eventsToWrite = append(eventsToWrite, event)
-			}
-			if event.Time.After(lastTimePoint) {
-				lastTimePoint = event.Time
-			}
-		}
-		log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"}`,
-			len(eventsToWrite), options.Location, options.ForecastSource, options.MeasurementName)
-		err = app.writer.WriteMeasurements(weather.AstroToPoints(eventsToWrite, options))
-		if err != nil {
-			log.Printf("%+v", err)
-		}
-		// save lastTimePoint
-		WriteState(app.config.StateFile, lastTimePoint)
+	if !ok {
+		return
 	}
+	events, err := astrocaster.GetAstrocast()
+	if err != nil {
+		log.Printf("%+v", err)
+		return
+	}
+	// filter points to only those after last written point
+	stateFile := filepath.Join(app.config.StateDir, options.ForecastSource, options.Location)
+	lastWrittenTime := ReadState(stateFile)
+	lastTimePoint := lastWrittenTime
+	eventsToWrite := make([]weather.AstroEvent, 0)
+	for _, event := range events {
+		if event.Time.After(lastWrittenTime) {
+			eventsToWrite = append(eventsToWrite, event)
+		}
+		if event.Time.After(lastTimePoint) {
+			lastTimePoint = event.Time
+		}
+	}
+	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"}`,
+		len(eventsToWrite), options.Location, options.ForecastSource, options.MeasurementName)
+	err = app.writer.WriteMeasurements(weather.AstroToPoints(eventsToWrite, options))
+	if err != nil {
+		log.Printf("%+v", err)
+		return
+	}
+	// save lastTimePoint
+	WriteState(stateFile, lastTimePoint)
 }
 
 func ReadState(stateFile string) time.Time {
@@ -171,11 +175,17 @@ func WriteState(stateFile string, time time.Time) {
 	newState, err := json.Marshal(time)
 	if err != nil {
 		log.Printf("Failed to marshal state: %+v", err)
-	} else {
-		err := os.WriteFile(stateFile, newState, 0644)
-		if err != nil {
-			log.Printf("Failed to write state: %+v", err)
-		}
+		return
+	}
+	dir := filepath.Dir(stateFile)
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		log.Printf("Failed to create state file dir: %+v", err)
+		return
+	}
+	err = os.WriteFile(stateFile, newState, 0644)
+	if err != nil {
+		log.Printf("Failed to write state: %+v", err)
 	}
 }
 
@@ -205,7 +215,7 @@ type Config struct {
 		} `mapstructure:"theglobalweather"`
 	}
 	HttpCacheDir string `mapstructure:"http_cache_dir"`
-	StateFile    string `mapstructure:"state_file"`
+	StateDir     string `mapstructure:"state_dir"`
 }
 
 // todo:
