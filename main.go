@@ -111,6 +111,9 @@ func (app App) RunForecast(src string, loc Location) {
 			f := "0"
 			nextHourOptions.ForecastTime = &f
 			err = app.writer.WriteMeasurements(weather.RecordsToPoints(nextHourRecord, nextHourOptions))
+			if err != nil {
+				log.Printf("%+v", err)
+			}
 			break
 		}
 	}
