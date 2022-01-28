@@ -25,6 +25,7 @@ type App struct {
 
 func main() {
 	viper.SetConfigName("forecastmetrics")
+	viper.AddConfigPath("/etc")
 	viper.AddConfigPath("/usr/local/etc")
 	viper.AddConfigPath("config")
 	viper.AddConfigPath(".")
