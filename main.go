@@ -10,10 +10,10 @@ import (
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
 	"github.com/spf13/viper"
-	myhttp "github.com/tedpearson/weather2influxdb/http"
-	"github.com/tedpearson/weather2influxdb/influx"
-	"github.com/tedpearson/weather2influxdb/source"
-	"github.com/tedpearson/weather2influxdb/weather"
+	myhttp "github.com/tedpearson/ForecastMetrics/http"
+	"github.com/tedpearson/ForecastMetrics/influx"
+	"github.com/tedpearson/ForecastMetrics/source"
+	"github.com/tedpearson/ForecastMetrics/weather"
 )
 
 type App struct {
@@ -24,7 +24,7 @@ type App struct {
 }
 
 func main() {
-	viper.SetConfigName("weather2influxdb")
+	viper.SetConfigName("forecastmetrics")
 	viper.AddConfigPath("/usr/local/etc")
 	viper.AddConfigPath("config")
 	viper.AddConfigPath(".")
@@ -224,7 +224,6 @@ type Config struct {
 // todo:
 //  add error handling for things like bad response from api, no points receieved, bad data
 //  (e.g. massively negative apparent temp on datapoints with no other data)
-//  build ci and releases in github actions
 //  test coverage
 //  embed build version in binary: https://blog.kowalczyk.info/article/vEja/embedding-build-number-in-go-executable.html
 //  see if vc in metric is any more accurate for precipitation

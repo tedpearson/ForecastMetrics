@@ -1,4 +1,4 @@
-module github.com/tedpearson/weather2influxdb
+module github.com/tedpearson/ForecastMetrics
 
 go 1.17
 

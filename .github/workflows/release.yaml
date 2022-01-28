@@ -28,19 +28,11 @@ jobs:
         run: go test -v .
 
       - name: Build linux-arm
-        run: env GOOS=linux GOARCH=arm go build -v .
-      - name: rename linux arm
-        run: mv weather2influxdb weather2influxdb-linux-arm
-
+        run: env GOOS=linux GOARCH=arm go build -v -o forecastmetrics-linux-arm .
       - name: Build linux-amd64
-        run: env GOOS=linux GOARCH=amd64 go build -v .
-      - name: rename linux amd64
-        run: mv weather2influxdb weather2influxdb-linux-amd64
-
+        run: env GOOS=linux GOARCH=amd64 go build -v -o forecastmetrics-linux-amd64 .
       - name: Build darwin-amd64
-        run: env GOOS=darwin GOARCH=amd64 go build -v .
-      - name: rename darwin amd64
-        run: mv weather2influxdb weather2influxdb-darwin-amd64
+        run: env GOOS=darwin GOARCH=amd64 go build -v -o forecastmetrics-darwin-amd64 .
 
       - name: Create release
         id: create_release
@@ -59,8 +51,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: weather2influxdb-linux-arm
-          asset_name: weather2influxdb-linux-arm
+          asset_path: forecastmetrics-linux-arm
+          asset_name: forecastmetrics-linux-arm
           asset_content_type: application/octet-stream
 
       - name: Upload linux-amd64
@@ -70,8 +62,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: weather2influxdb-linux-amd64
-          asset_name: weather2influxdb-linux-amd64
+          asset_path: forecastmetrics-linux-amd64
+          asset_name: forecastmetrics-linux-amd64
           asset_content_type: application/octet-stream
 
       - name: Upload darwin-amd64
@@ -81,6 +73,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: weather2influxdb-darwin-amd64
-          asset_name: weather2influxdb-darwin-amd64
+          asset_path: forecastmetrics-darwin-amd64
+          asset_name: forecastmetrics-darwin-amd64
           asset_content_type: application/octet-stream

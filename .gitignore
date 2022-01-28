@@ -1,4 +1,5 @@
 .idea
 *.iml
-weather2influxdb.yaml
-/weather2influxdb
+forecastmetrics.yaml
+/ForecastMetrics
+/forecastmetrics

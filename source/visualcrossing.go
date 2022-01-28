@@ -9,9 +9,9 @@ import (
 
 	"github.com/cenkalti/backoff/v3"
 	"github.com/pkg/errors"
-	"github.com/tedpearson/weather2influxdb/convert"
-	"github.com/tedpearson/weather2influxdb/http"
-	"github.com/tedpearson/weather2influxdb/weather"
+	"github.com/tedpearson/ForecastMetrics/convert"
+	"github.com/tedpearson/ForecastMetrics/http"
+	"github.com/tedpearson/ForecastMetrics/weather"
 )
 
 type VisualCrossing struct {

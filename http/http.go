@@ -30,7 +30,7 @@ func (r Retryer) doRequest(url string, body **io.ReadCloser) func() error {
 			return backoff.Permanent(err)
 		}
 		// user-agent required by weather.gov with email
-		req.Header.Set("User-Agent", "https://github.com/tedpearson/weather2influxdb by ted@tedpearson.com")
+		req.Header.Set("User-Agent", "https://github.com/tedpearson/ForecastMetrics by ted@tedpearson.com")
 		resp, err := r.Client.Do(req)
 		if err != nil {
 			return backoff.Permanent(err)

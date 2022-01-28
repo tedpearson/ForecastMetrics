@@ -1,12 +1,20 @@
-# Weather2InfluxDB
+# ForecastMetrics
 
-Weather2InfluxDB is a tool to store forecast data from multiple
-sources in InfluxDB.
+ForecastMetrics is a tool to store forecast data from multiple
+sources in VictoriaMetrics or InfluxDB.
+
+I currently use [VictoriaMetrics](https://victoriametrics.com) as my time series database.
+Because of that, this project does a few things specificly to support it:
+- Uses the influx 1.x Go client (VictoriaMetrics only supports Basic auth, not Token)
+- Writes hourly sunup information
+- Uses no retention policies (not supported in VictoriaMetrics)
+- Every forecast is a new tag/label, since VictoriaMetrics doesn't support overwriting
+  metrics as Influx does.
+- Past data is written one data point per hour, also because overwriting data is unsupported.
 
 #### Currently supported sources:
 - National Weather Service (NWS)
 - VisualCrossing
-- ~~TheGlobalWeather~~ This source appears to have shut down as of December 2021.
 - No other sources planned at this time, due to not meeting the below
 criteria (7 day hourly forecast, reasonably priced or free)
 - Open an issue if you find a worthy source!
@@ -16,24 +24,24 @@ criteria (7 day hourly forecast, reasonably priced or free)
 ### Install
 - Download a binary from the latest [Release][release] if your architecture is available
 
-      curl -O https://github.com/tedpearson/weather2influxdb/releases/download/v1.1.0/weather2influxdb-linux-arm
+      curl -O https://github.com/tedpearson/ForecastMetrics/releases/download/v2.3.1/forecastmetrics-linux-arm
 
 - Make the binary executable
 
-      chmod +x weather2influxdb-linux-arm
+      chmod +x forecastmetrics-linux-arm
 
 - If your architecture is not avaialable, you'll need to build from source:
   - Clone this repo
   - [Install Go][install-go]
   -
-        cd weather2influxdb
+        cd ForecastMetrics
         go build
 
 ### Configure
 
 - Get the example config
 
-      curl https://raw.githubusercontent.com/tedpearson/weather2influxdb/master/config/weather2influxdb.example.yaml > weather2influxdb.yaml
+      curl https://raw.githubusercontent.com/tedpearson/ForecastMetrics/master/config/forecastmetrics.example.yaml > forecastmetrics.yaml
 
 - Modify the config with your own values for:
   - location(s)
@@ -42,14 +50,14 @@ criteria (7 day hourly forecast, reasonably priced or free)
   - which weather sources to enable
   - add your own key for limited access/pay sources
 
-- Place the config file either in the same directory with weather2influxdb, in `/usr/local/etc/`, or
-  in a `config` directory next to weather2influxdb.
+- Place the config file either in the same directory with forecastmetrics, in `/usr/local/etc/`, or
+  in a `config` directory next to forecastmetrics.
       
 
 ### Run
 There are no command line options, so just run the binary like this:
 
-    ./weather2influxdb
+    ./forecastmetrics
 
 ## Grafana Dashboard
 I've included my [grafana dashboard definition](grafana/dashboard.json) in the repo. 
@@ -59,7 +67,7 @@ I use this dashboard daily for my local weather forecast.
 
 ## Rationale behind included/planned sources:
 I was looking for a replacement for DarkSky, who were bought by
-Apple and will be retiring their API at the end of 2021.
+Apple and will be retiring their API at the end of <s>2021</s>2022.
 DarkSky had the best forecasts and a generous free version,
 with 7 days of forecast data available.
 
@@ -79,12 +87,7 @@ per month, as I only made <200 calls/day to DarkSky, and paying
 large amounts for my personal forecast dashboard is just silly.
     - This is why visualcrossing is a supported source,
     because their free tier supports 250 forecasts/day.
-- I also considered Low-cost APIs.
-    - ~~Theglobalweather is a pay-as-you-go api that you only pay 
-    a fraction of a cent per call, which is much better than paying
-    tens or hundreds of US dollars a month.~~ Appears to have shut
-    down as of December 2021.
 
-[release]: https://github.com/tedpearson/weather2influxdb/releases
-[config-example]: https://github.com/tedpearson/weather2influxdb/blob/master/config/weather2influxdb.example.yaml
+[release]: https://github.com/tedpearson/ForecastMetrics/releases
+[config-example]: https://github.com/tedpearson/ForecastMetrics/blob/master/config/forecastmetrics.example.yaml
 [install-go]: https://golang.org/dl/
