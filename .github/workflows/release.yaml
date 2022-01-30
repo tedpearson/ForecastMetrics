@@ -34,11 +34,12 @@ jobs:
       - name: Build darwin-amd64
         run: env GOOS=darwin GOARCH=amd64 go build -v -o forecastmetrics-darwin-amd64 .
       - name: set deb version
-        run: echo "DEB_VERSION=${${{github.ref}}:1}"
+        name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "DEB_VERSION=${GITHUB_REF/refs\/tags\//v}"
       - name: set deb file name
         run: echo "DEB_FILE=forecastmetrics_$VERSION_armhf.deb"
       - name: Create armhf deb
-        run: packaging/deb.sh forecastmetrics-linux-arm $VERSION $DEB_FILE
+        run: packaging/deb.sh forecastmetrics-linux-arm $DEB_VERSION $DEB_FILE
 
       - name: Create release
         id: create_release
