@@ -7,9 +7,6 @@ VERSION=$1; shift
 DEB_FILE=$1; shift
 
 mkdir -p deb/usr/local/bin
-pwd
-ls
-ls ..
 cp $BINARY deb/usr/local/bin/
 mkdir -p deb/usr/local/share/forecastmetrics
 cp "$dir/../config/forecastmetrics.example.yaml" deb/usr/local/share/forecastmetrics/
