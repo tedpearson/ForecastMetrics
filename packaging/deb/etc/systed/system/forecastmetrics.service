@@ -1,0 +1,7 @@
+[Unit]
+Description = ForecastMetrics
+
+[Service]
+Type = simple
+User = pi
+ExecStart = /usr/local/bin/forecastmetrics

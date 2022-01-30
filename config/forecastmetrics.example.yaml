@@ -19,7 +19,6 @@ astronomy:
 sources:
   enabled:
     - nws
-    - visualcrossing
   visualcrossing:
     key: your_key_here
 

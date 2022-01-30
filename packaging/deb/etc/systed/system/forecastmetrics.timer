@@ -1,0 +1,8 @@
+[Unit]
+Description = ForecastMetrics Timer
+
+[Timer]
+OnCalendar = *-*-* *:00:00 America/New_York
+
+[Install]
+WantedBy = timers.target

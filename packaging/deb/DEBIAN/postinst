@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+if [ "$1" = "configure" ]; then
+	if [ ! -f /etc/forecastmetrics.yaml ]; then
+		cp /usr/local/share/forecastmetrics/forecastmetrics.example.yaml /usr/local/share/forecastmetrics/forecastmetrics.yaml
+	fi
+fi
+
+mkdir -p /var/lib/forecastmetrics

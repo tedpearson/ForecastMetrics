@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+if [ -x "$(command -v cmp)" ]; then
+	CONF=/etc/forecastmetrics.yaml
+	EXAMPLE=/usr/local/share/forecastmetrics/forecastmetrics.example.yaml
+	if [ -f $CONFIG -a -f $EXAMPLE ] && cmp $CONFIG $EXAMPLE; then
+		rm $CONF
+	fi
+fi
+

@@ -33,6 +33,12 @@ jobs:
         run: env GOOS=linux GOARCH=amd64 go build -v -o forecastmetrics-linux-amd64 .
       - name: Build darwin-amd64
         run: env GOOS=darwin GOARCH=amd64 go build -v -o forecastmetrics-darwin-amd64 .
+      - name: set deb version
+        run: echo "DEB_VERSION=${${{github.ref}}:1}"
+      - name: set deb file name
+        run: echo "DEB_FILE=forecastmetrics_$VERSION_armhf.deb"
+      - name: Create armhf deb
+        run: packaging/deb.sh forecastmetrics $VERSION $DEB_FILE
 
       - name: Create release
         id: create_release
@@ -75,4 +81,15 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: forecastmetrics-darwin-amd64
           asset_name: forecastmetrics-darwin-amd64
+          asset_content_type: application/octet-stream
+
+      - name: Upload debian armhf package
+        uses: actions/upload-release-asset@v1
+        env:
+          # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: $DEB_FILE
+          asset_name: $DEB_FILE
           asset_content_type: application/octet-stream
