@@ -10,8 +10,8 @@ mkdir -p deb/usr/local/bin
 cp $BINARY deb/usr/local/bin/
 mkdir -p deb/usr/local/share/forecastmetrics
 cp "$dir/../config/forecastmetrics.example.yaml" deb/usr/local/share/forecastmetrics/
-mkdir -p package/DEBIAN
-cat > package/DEBIAN/control <<-END
+mkdir -p deb/DEBIAN
+cat > deb/DEBIAN/control <<-END
 	Package: forecastmetrics
 	Version: $VERSION
 	Architecture: armhf
@@ -19,4 +19,4 @@ cat > package/DEBIAN/control <<-END
 	Description: Ingests forecast data into time-series database.
 END
 
-dpkg-deb --build --root-owner-group package "$DEB_FILE"
+dpkg-deb --build --root-owner-group deb "$DEB_FILE"
