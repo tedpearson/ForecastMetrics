@@ -36,7 +36,7 @@ jobs:
       - name: set deb version
         run: echo "DEB_VERSION=${GITHUB_REF/refs\/tags\/v/}"
       - name: set deb file name
-        run: echo "DEB_FILE=forecastmetrics_$DEB_VERSION_armhf.deb"
+        run: echo "DEB_FILE=forecastmetrics_${DEB_VERSION}_armhf.deb"
       - name: Create armhf deb
         run: packaging/deb.sh forecastmetrics-linux-arm $DEB_VERSION $DEB_FILE
 
