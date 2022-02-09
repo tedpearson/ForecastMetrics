@@ -64,7 +64,10 @@ func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
 			return empty, errors.WithStack(err)
 		}
 		skyCover := convert.PercentToRatio(*m.CloudCover)
-		precipProb := convert.PercentToRatio(*m.Pop)
+		var precipProb *float64
+		if m.Pop != nil {
+			*precipProb = convert.PercentToRatio(*m.Pop)
+		}
 		record := weather.Record{
 			Time:                     t,
 			Temperature:              m.Temp,
@@ -74,7 +77,7 @@ func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
 			WindDirection:            m.Wdir,
 			WindSpeed:                m.Wspd,
 			WindGust:                 m.Wgust,
-			PrecipitationProbability: &precipProb,
+			PrecipitationProbability: precipProb,
 			PrecipitationAmount:      m.Precip,
 			SnowAmount:               convert.NilToZero(m.Snow),
 		}
