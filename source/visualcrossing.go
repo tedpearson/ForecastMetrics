@@ -66,7 +66,8 @@ func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
 		skyCover := convert.PercentToRatio(*m.CloudCover)
 		var precipProb *float64
 		if m.Pop != nil {
-			*precipProb = convert.PercentToRatio(*m.Pop)
+			pop := convert.PercentToRatio(*m.Pop)
+			precipProb = &pop
 		}
 		record := weather.Record{
 			Time:                     t,
