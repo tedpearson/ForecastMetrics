@@ -140,8 +140,7 @@ func SetSkyCover(r *Record, v float64) {
 }
 
 func SetWindDirection(r *Record, v float64) {
-	i := int(v)
-	r.WindDirection = &i
+	r.WindDirection = &v
 }
 
 func SetWindSpeed(r *Record, v float64) {
