@@ -25,7 +25,7 @@ type Record struct {
 	Dewpoint                 *float64
 	FeelsLike                *float64
 	SkyCover                 *float64
-	WindDirection            *int
+	WindDirection            *float64
 	WindSpeed                *float64
 	WindGust                 *float64
 	PrecipitationProbability *float64

@@ -63,7 +63,6 @@ func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
 		if err != nil {
 			return empty, errors.WithStack(err)
 		}
-		wdir := int(*m.Wdir)
 		skyCover := convert.PercentToRatio(*m.CloudCover)
 		precipProb := convert.PercentToRatio(*m.Pop)
 		record := weather.Record{
@@ -72,7 +71,7 @@ func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
 			Dewpoint:                 calcDewpoint(*m.Humidity, *m.Temp),
 			FeelsLike:                feelsLike(m.Temp, m.HeatIndex, m.WindChill),
 			SkyCover:                 &skyCover,
-			WindDirection:            &wdir,
+			WindDirection:            m.Wdir,
 			WindSpeed:                m.Wspd,
 			WindGust:                 m.Wgust,
 			PrecipitationProbability: &precipProb,
