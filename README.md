@@ -4,7 +4,7 @@ ForecastMetrics is a tool to store forecast data from multiple
 sources in VictoriaMetrics or InfluxDB.
 
 I currently use [VictoriaMetrics](https://victoriametrics.com) as my time series database.
-Because of that, this project does a few things specificly to support it:
+Because of that, this project does a few things specifically to support it:
 - Uses the influx 1.x Go client (VictoriaMetrics only supports Basic auth, not Token)
 - Writes hourly sunup information
 - Uses no retention policies (not supported in VictoriaMetrics)
@@ -60,10 +60,15 @@ There are no command line options, so just run the binary like this:
     ./forecastmetrics
 
 ## Grafana Dashboard
-I've included my [grafana dashboard definition](grafana/dashboard.json) in the repo. 
-Here is a screenshot of what it looks like when configured correctly.
-I use this dashboard daily for my local weather forecast.
-![grafana dashboard](grafana/dashboard.png)
+I've included definitions for my grafana dashboard in the repo, both for [InfluxDB](grafana/influx.json) and
+[VictoriaMetrics](grafana/victoriametrics.json) which I now use. Here are screenshots of each in use. I use
+this dashboard daily for my local weather forecast.
+
+### Influx Dashboard 
+![influx grafana dashboard](grafana/influx.png)
+
+### VictoriaMetrics Dashboard
+![VictoriaMetrics dashboard](grafana/victoriametrics.png)
 
 ## Rationale behind included/planned sources:
 I was looking for a replacement for DarkSky, who were bought by
