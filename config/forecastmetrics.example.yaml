@@ -25,3 +25,7 @@ sources:
 
 http_cache_dir: /var/lib/forecastmetrics/cache
 state_dir: /var/lib/forecastmetrics/state
+# overwrite_data will write a single series of forecast data,
+# instead of a new series each time the program runs. This works
+# with influxdb but not with VictoriaMetrics.
+overwrite_data: false

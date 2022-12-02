@@ -16,6 +16,36 @@ import (
 	"github.com/tedpearson/ForecastMetrics/weather"
 )
 
+type Location struct {
+	Name      string
+	Latitude  string
+	Longitude string
+}
+
+type Config struct {
+	Locations []Location
+	InfluxDB  influx.Config
+	Forecast  struct {
+		MeasurementName string `mapstructure:"measurement_name"`
+	}
+	Astronomy struct {
+		Enabled         bool
+		MeasurementName string `mapstructure:"measurement_name"`
+	}
+	Sources struct {
+		Enabled        []string
+		VisualCrossing struct {
+			Key string
+		} `mapstructure:"visualcrossing"`
+		TheGlobalWeather struct {
+			Key string
+		} `mapstructure:"theglobalweather"`
+	}
+	HttpCacheDir  string `mapstructure:"http_cache_dir"`
+	StateDir      string `mapstructure:"state_dir"`
+	OverwriteData bool   `mapstructure:"overwrite_data"`
+}
+
 type App struct {
 	forecasters map[string]weather.Forecaster
 	writer      *influx.Writer
@@ -85,13 +115,15 @@ func (app App) RunForecast(src string, loc Location) {
 		log.Printf("%+v", err)
 		return
 	}
-	forecastTime := time.Now().Truncate(time.Hour).Format("2006-01-02:15")
 	forecastOptions := weather.WriteOptions{
 		ForecastSource:  src,
 		MeasurementName: c.Forecast.MeasurementName,
 		Location:        loc.Name,
 		Database:        c.InfluxDB.Database,
-		ForecastTime:    &forecastTime,
+	}
+	if !c.OverwriteData {
+		forecastTime := time.Now().Truncate(time.Hour).Format("2006-01-02:15")
+		forecastOptions.ForecastTime = &forecastTime
 	}
 
 	// write forecast
@@ -104,18 +136,20 @@ func (app App) RunForecast(src string, loc Location) {
 		log.Printf("%+v", err)
 	}
 	// write next hour to past forecast measurement
-	nextHour := time.Now().Truncate(time.Hour).Add(time.Hour)
-	for _, record := range records {
-		if nextHour.Equal(record.Time) {
-			nextHourRecord := []weather.Record{record}
-			nextHourOptions := forecastOptions
-			f := "0"
-			nextHourOptions.ForecastTime = &f
-			err = app.writer.WriteMeasurements(weather.RecordsToPoints(nextHourRecord, nextHourOptions))
-			if err != nil {
-				log.Printf("%+v", err)
+	if !c.OverwriteData {
+		nextHour := time.Now().Truncate(time.Hour).Add(time.Hour)
+		for _, record := range records {
+			if nextHour.Equal(record.Time) {
+				nextHourRecord := []weather.Record{record}
+				nextHourOptions := forecastOptions
+				f := "0"
+				nextHourOptions.ForecastTime = &f
+				err = app.writer.WriteMeasurements(weather.RecordsToPoints(nextHourRecord, nextHourOptions))
+				if err != nil {
+					log.Printf("%+v", err)
+				}
+				break
 			}
-			break
 		}
 	}
 	// write astronomy
@@ -193,40 +227,9 @@ func WriteState(stateFile string, time time.Time) {
 	}
 }
 
-type Location struct {
-	Name      string
-	Latitude  string
-	Longitude string
-}
-
-type Config struct {
-	Locations []Location
-	InfluxDB  influx.Config
-	Forecast  struct {
-		MeasurementName string `mapstructure:"measurement_name"`
-	}
-	Astronomy struct {
-		Enabled         bool
-		MeasurementName string `mapstructure:"measurement_name"`
-	}
-	Sources struct {
-		Enabled        []string
-		VisualCrossing struct {
-			Key string
-		} `mapstructure:"visualcrossing"`
-		TheGlobalWeather struct {
-			Key string
-		} `mapstructure:"theglobalweather"`
-	}
-	HttpCacheDir string `mapstructure:"http_cache_dir"`
-	StateDir     string `mapstructure:"state_dir"`
-}
-
 // todo:
 //  add error handling for things like bad response from api, no points receieved, bad data
 //  (e.g. massively negative apparent temp on datapoints with no other data)
 //  test coverage
 //  embed build version in binary: https://blog.kowalczyk.info/article/vEja/embedding-build-number-in-go-executable.html
-//  see if vc in metric is any more accurate for precipitation
 //  add code documentation
-//  update readme with how to set up and use (config, influx, accounts)
