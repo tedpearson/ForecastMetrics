@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"os"
@@ -9,9 +10,13 @@ import (
 
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
+	"github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api"
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+
 	myhttp "github.com/tedpearson/ForecastMetrics/http"
-	"github.com/tedpearson/ForecastMetrics/influx"
 	"github.com/tedpearson/ForecastMetrics/source"
 	"github.com/tedpearson/ForecastMetrics/weather"
 )
@@ -22,9 +27,16 @@ type Location struct {
 	Longitude string
 }
 
+type Influx struct {
+	Host      string
+	AuthToken string `mapstructure:"auth_token"`
+	Org       string
+	Bucket    string
+}
+
 type Config struct {
 	Locations []Location
-	InfluxDB  influx.Config
+	InfluxDB  Influx
 	Forecast  struct {
 		MeasurementName string `mapstructure:"measurement_name"`
 	}
@@ -48,7 +60,7 @@ type Config struct {
 
 type App struct {
 	forecasters map[string]weather.Forecaster
-	writer      *influx.Writer
+	writeApi    api.WriteAPIBlocking
 	retryer     myhttp.Retryer
 	config      Config
 }
@@ -74,13 +86,14 @@ func main() {
 	retryer := myhttp.Retryer{
 		Client: client,
 	}
-	writer, err := influx.New(config.InfluxDB)
-	if err != nil {
-		log.Fatalf("Couldn't connect to influx: %+v", err)
-	}
+
+	ic := config.InfluxDB
+	c := influxdb2.NewClient(ic.Host, ic.AuthToken)
+	writeApi := c.WriteAPIBlocking(ic.Org, ic.Bucket)
+
 	app := App{
 		forecasters: MakeForecasters(config),
-		writer:      writer,
+		writeApi:    writeApi,
 		retryer:     retryer,
 		config:      config,
 	}
@@ -119,7 +132,6 @@ func (app App) RunForecast(src string, loc Location) {
 		ForecastSource:  src,
 		MeasurementName: c.Forecast.MeasurementName,
 		Location:        loc.Name,
-		Database:        c.InfluxDB.Database,
 	}
 	if !c.OverwriteData {
 		forecastTime := time.Now().Truncate(time.Hour).Format("2006-01-02:15")
@@ -130,9 +142,9 @@ func (app App) RunForecast(src string, loc Location) {
 
 	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`,
 		len(records), loc.Name, src, c.Forecast.MeasurementName, *forecastOptions.ForecastTime)
-	err = app.writer.WriteMeasurements(
-		weather.RecordsToPoints(records, forecastOptions))
-	if err != nil {
+
+	points := weather.RecordsToPoints(records, forecastOptions)
+	if err = app.writeApi.WritePoint(context.Background(), points...); err != nil {
 		log.Printf("%+v", err)
 	}
 	// write next hour to past forecast measurement
@@ -144,8 +156,8 @@ func (app App) RunForecast(src string, loc Location) {
 				nextHourOptions := forecastOptions
 				f := "0"
 				nextHourOptions.ForecastTime = &f
-				err = app.writer.WriteMeasurements(weather.RecordsToPoints(nextHourRecord, nextHourOptions))
-				if err != nil {
+				points = weather.RecordsToPoints(nextHourRecord, nextHourOptions)
+				if err = app.writeApi.WritePoint(context.Background(), points...); err != nil {
 					log.Printf("%+v", err)
 				}
 				break
@@ -186,13 +198,25 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 	}
 	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"}`,
 		len(eventsToWrite), options.Location, options.ForecastSource, options.MeasurementName)
-	err = app.writer.WriteMeasurements(weather.AstroToPoints(eventsToWrite, options))
+	points := weather.AstroToPoints(eventsToWrite, options)
+	err = app.writeApi.WritePoint(context.Background(), points...)
 	if err != nil {
 		log.Printf("%+v", err)
 		return
 	}
 	// save lastTimePoint
 	WriteState(stateFile, lastTimePoint)
+}
+
+func WriteMeasurements(apiWrite api.WriteAPIBlocking, points []*write.Point, err error) error {
+	if err != nil {
+		return err
+	}
+	err = apiWrite.WritePoint(context.Background(), points...)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func ReadState(stateFile string) time.Time {

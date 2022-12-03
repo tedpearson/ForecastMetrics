@@ -5,15 +5,18 @@ locations:
 
 influxdb:
   host: http://localhost:8086
-  user: user
-  password: password
-  database: forecast
+  # for influx 1.8/VictoriaMetrics, use "user:password"
+  auth_token: token
+  # for influx 1.8/VictoriaMetrics, use blank
+  org: ""
+  # for influx 1.8/VictoriaMetrics, use "database" or "database/retention-policy"
+  bucket: forecast
 
 forecast:
   measurement_name: forecast
 
 astronomy:
-  enabled: yes
+  enabled: true
   measurement_name: astronomy
 
 sources:

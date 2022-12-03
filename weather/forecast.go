@@ -1,18 +1,16 @@
 package weather
 
 import (
-	"log"
 	"reflect"
 	"time"
 
 	"github.com/iancoleman/strcase"
-	influxdb1 "github.com/influxdata/influxdb1-client/v2"
-	"github.com/pkg/errors"
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
+
 	"github.com/tedpearson/ForecastMetrics/http"
 )
 
 type WriteOptions struct {
-	Database        string
 	ForecastSource  string
 	MeasurementName string
 	Location        string
@@ -34,7 +32,7 @@ type Record struct {
 	IceAmount                *float64
 }
 
-func RecordsToPoints(rs []Record, options WriteOptions) (influxdb1.BatchPoints, error) {
+func RecordsToPoints(rs []Record, options WriteOptions) []*write.Point {
 	events := make([]interface{}, len(rs))
 	for i, event := range rs {
 		events[i] = event
@@ -50,7 +48,7 @@ type AstroEvent struct {
 	FullMoonRatio *float64
 }
 
-func AstroToPoints(aes []AstroEvent, options WriteOptions) (influxdb1.BatchPoints, error) {
+func AstroToPoints(aes []AstroEvent, options WriteOptions) []*write.Point {
 	events := make([]interface{}, len(aes))
 	for i, event := range aes {
 		events[i] = event
@@ -58,13 +56,8 @@ func AstroToPoints(aes []AstroEvent, options WriteOptions) (influxdb1.BatchPoint
 	return toPoints(events, options)
 }
 
-func toPoints(items []interface{}, options WriteOptions) (influxdb1.BatchPoints, error) {
-	batchPoints, err := influxdb1.NewBatchPoints(influxdb1.BatchPointsConfig{
-		Database: options.Database,
-	})
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+func toPoints(items []interface{}, options WriteOptions) []*write.Point {
+	points := make([]*write.Point, 0, len(items))
 	for _, item := range items {
 		t := reflect.ValueOf(item).FieldByName("Time").Interface().(time.Time)
 		// only send future datapoints.
@@ -72,17 +65,12 @@ func toPoints(items []interface{}, options WriteOptions) (influxdb1.BatchPoints,
 		if ft != nil && *ft != "0" && t.Before(time.Now().Add(time.Hour+1)) {
 			continue
 		}
-		point, err := toPoint(t, item, options)
-		if err != nil {
-			log.Printf("Failed to create point: %+v", err)
-			continue
-		}
-		batchPoints.AddPoint(point)
+		points = append(points, toPoint(t, item, options))
 	}
-	return batchPoints, nil
+	return points
 }
 
-func toPoint(t time.Time, i interface{}, options WriteOptions) (*influxdb1.Point, error) {
+func toPoint(t time.Time, i interface{}, options WriteOptions) *write.Point {
 	tags := map[string]string{
 		"source":   options.ForecastSource,
 		"location": options.Location,
@@ -106,7 +94,7 @@ func toPoint(t time.Time, i interface{}, options WriteOptions) (*influxdb1.Point
 		val := ptr.Elem().Interface()
 		fields[name] = val
 	}
-	return influxdb1.NewPoint(options.MeasurementName, tags, fields, t)
+	return write.NewPoint(options.MeasurementName, tags, fields, t)
 }
 
 type Initer interface {
