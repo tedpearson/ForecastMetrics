@@ -140,8 +140,12 @@ func (app App) RunForecast(src string, loc Location) {
 
 	// write forecast
 
+	ft := "nil"
+	if forecastOptions.ForecastTime != nil {
+		ft = *forecastOptions.ForecastTime
+	}
 	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`,
-		len(records), loc.Name, src, c.Forecast.MeasurementName, *forecastOptions.ForecastTime)
+		len(records), loc.Name, src, c.Forecast.MeasurementName, ft)
 
 	points := weather.RecordsToPoints(records, forecastOptions)
 	if err = app.writeApi.WritePoint(context.Background(), points...); err != nil {
