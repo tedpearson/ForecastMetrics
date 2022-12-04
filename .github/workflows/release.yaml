@@ -43,10 +43,9 @@ jobs:
           VERSION=$(git describe --tags --dirty --always --long)
           DATE=$(date)
           GOVERSION=$(go version)
-          PREFIX='github.com/tedpearson/ForecastMetrics'
-          LDFLAGS="-X '$PREFIX.main.version=$VERSION'"
-          LDFLAGS="$LDFLAGS -X '$PREFIX.main.goVersion=$GOVERSION'"
-          LDFLAGS="$LDFLAGS -X '$PREFIX.main.buildDate=$DATE'"
+          LDFLAGS="-X 'main.version=$VERSION'"
+          LDFLAGS="$LDFLAGS -X 'main.goVersion=$GOVERSION'"
+          LDFLAGS="$LDFLAGS -X 'main.buildDate=$DATE'"
 
       - name: Build
         run: env GOOS=${{matrix.GOOS}} GOARCH=${{matrix.GOARCH}} go build -ldflags "$LDFLAGS" -v -o ${{env.executable}} .
