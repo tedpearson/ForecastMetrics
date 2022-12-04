@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,6 +21,12 @@ import (
 	myhttp "github.com/tedpearson/ForecastMetrics/http"
 	"github.com/tedpearson/ForecastMetrics/source"
 	"github.com/tedpearson/ForecastMetrics/weather"
+)
+
+var (
+	version   string = "development"
+	goVersion string = "unknown"
+	buildDate string = "unknown"
 )
 
 type Location struct {
@@ -66,6 +74,7 @@ type App struct {
 }
 
 func main() {
+	printVersion()
 	viper.SetConfigName("forecastmetrics")
 	viper.AddConfigPath("/etc")
 	viper.AddConfigPath("/usr/local/etc")
@@ -252,6 +261,15 @@ func WriteState(stateFile string, time time.Time) {
 	err = os.WriteFile(stateFile, newState, 0644)
 	if err != nil {
 		log.Printf("Failed to write state: %+v", err)
+	}
+}
+
+func printVersion() {
+	versionFlag := flag.Bool("v", false, "Show version and exit")
+	flag.Parse()
+	fmt.Printf("ForecastMetrics %s built on %s with %s\n", version, buildDate, goVersion)
+	if *versionFlag {
+		os.Exit(0)
 	}
 }
 

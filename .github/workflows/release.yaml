@@ -38,8 +38,18 @@ jobs:
       - name: Test
         run: go test -v .
 
+      - name: Get build version info
+        run: |
+          VERSION=$(git describe --tags --dirty --always --long)
+          DATE=$(date)
+          GOVERSION=$(go version)
+          PREFIX='github.com/tedpearson/ForecastMetrics'
+          LDFLAGS="-X '$PREFIX.main.version=$VERSION'"
+          LDFLAGS="$LDFLAGS -X '$PREFIX.main.goVersion=$GOVERSION'"
+          LDFLAGS="$LDFLAGS -X '$PREFIX.main.buildDate=$DATE'"
+
       - name: Build
-        run: env GOOS=${{matrix.GOOS}} GOARCH=${{matrix.GOARCH}} go build -v -o ${{env.executable}} .
+        run: env GOOS=${{matrix.GOOS}} GOARCH=${{matrix.GOARCH}} go build -ldflags "$LDFLAGS" -v -o ${{env.executable}} .
 
       - name: Create or update release
         id: create_release
