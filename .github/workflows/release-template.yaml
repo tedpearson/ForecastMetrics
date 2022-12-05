@@ -1,10 +1,6 @@
-name: release
+name: release template
 
 on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
   workflow_call:
     inputs:
       executable:
