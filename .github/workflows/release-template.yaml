@@ -6,6 +6,9 @@ on:
       executable:
         required: true
         type: string
+      ref:
+        required: true
+        type: string
 
 jobs:
   build:
@@ -61,6 +64,6 @@ jobs:
           allowUpdates: true
           artifacts: ${{env.executable}}
           tag: ${{env.TAG_NAME}}
-          commit: master
+          commit: ${{inputs.ref}}
           token: ${{ secrets.GITHUB_TOKEN }}
           omitBodyDuringUpdate: true
