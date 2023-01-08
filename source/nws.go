@@ -16,9 +16,10 @@ import (
 	"github.com/cenkalti/backoff/v3"
 	"github.com/pkg/errors"
 	"github.com/rickb777/date/period"
-	"github.com/tedpearson/ForecastMetrics/convert"
-	"github.com/tedpearson/ForecastMetrics/http"
-	"github.com/tedpearson/ForecastMetrics/weather"
+
+	"github.com/tedpearson/ForecastMetrics/v3/http"
+	"github.com/tedpearson/ForecastMetrics/v3/internal/convert"
+	"github.com/tedpearson/ForecastMetrics/v3/weather"
 )
 
 type NWS struct {

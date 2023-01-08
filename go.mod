@@ -1,4 +1,4 @@
-module github.com/tedpearson/ForecastMetrics
+module github.com/tedpearson/ForecastMetrics/v3
 
 go 1.19
 

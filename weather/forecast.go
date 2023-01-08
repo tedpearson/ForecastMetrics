@@ -7,7 +7,7 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
 
-	"github.com/tedpearson/ForecastMetrics/http"
+	"github.com/tedpearson/ForecastMetrics/v3/http"
 )
 
 type WriteOptions struct {

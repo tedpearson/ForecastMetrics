@@ -18,9 +18,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	myhttp "github.com/tedpearson/ForecastMetrics/http"
-	"github.com/tedpearson/ForecastMetrics/source"
-	"github.com/tedpearson/ForecastMetrics/weather"
+	myhttp "github.com/tedpearson/ForecastMetrics/v3/http"
+	"github.com/tedpearson/ForecastMetrics/v3/source"
+	"github.com/tedpearson/ForecastMetrics/v3/weather"
 )
 
 var (
