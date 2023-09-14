@@ -16,7 +16,6 @@ forecast:
   measurement_name: forecast
 
 astronomy:
-  enabled: true
   measurement_name: astronomy
 
 sources:
@@ -32,3 +31,6 @@ state_dir: /var/lib/forecastmetrics/state
 # instead of a new series each time the program runs. This works
 # with influxdb but not with VictoriaMetrics.
 overwrite_data: false
+bing_token: your_token_here
+server_port: 8080
+ad_hoc_cache_entries: 100

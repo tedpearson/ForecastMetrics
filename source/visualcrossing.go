@@ -12,12 +12,31 @@ import (
 
 	"github.com/tedpearson/ForecastMetrics/v3/http"
 	"github.com/tedpearson/ForecastMetrics/v3/internal/convert"
-	"github.com/tedpearson/ForecastMetrics/v3/weather"
 )
 
 type VisualCrossing struct {
+	Retryer  http.Retryer
 	Key      string
 	forecast vcForecast
+}
+
+func (v *VisualCrossing) GetForecast(lat string, lon string) (*Forecast, error) {
+	err := v.Init(lat, lon, v.Retryer)
+	if err != nil {
+		return nil, err
+	}
+	weatherRecords, err := v.GetWeather()
+	if err != nil {
+		return nil, err
+	}
+	astroEvents, err := v.GetAstrocast()
+	if err != nil {
+		return nil, err
+	}
+	return &Forecast{
+		WeatherRecords: weatherRecords,
+		AstroEvents:    astroEvents,
+	}, nil
 }
 
 func (v *VisualCrossing) Init(lat string, lon string, retryer http.Retryer) error {
@@ -49,9 +68,9 @@ func (v *VisualCrossing) Init(lat string, lon string, retryer http.Retryer) erro
 	return nil
 }
 
-func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
-	var empty []weather.Record
-	values := make([]weather.Record, 0, len(v.forecast.Location.Values))
+func (v *VisualCrossing) GetWeather() ([]WeatherRecord, error) {
+	var empty []WeatherRecord
+	values := make([]WeatherRecord, 0, len(v.forecast.Location.Values))
 	for _, m := range v.forecast.Location.Values {
 		// note: after 7 days, the forecast data is every 3 hours
 		//       but the other 2 hours are still in the output
@@ -70,7 +89,7 @@ func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
 			pop := convert.PercentToRatio(*m.Pop)
 			precipProb = &pop
 		}
-		record := weather.Record{
+		record := WeatherRecord{
 			Time:                     t,
 			Temperature:              m.Temp,
 			Dewpoint:                 calcDewpoint(*m.Humidity, *m.Temp),
@@ -88,10 +107,10 @@ func (v *VisualCrossing) GetWeather() ([]weather.Record, error) {
 	return values, nil
 }
 
-func (v *VisualCrossing) GetAstrocast() ([]weather.AstroEvent, error) {
-	var empty []weather.AstroEvent
+func (v *VisualCrossing) GetAstrocast() ([]AstroEvent, error) {
+	var empty []AstroEvent
 	// add 32 points for sunrise and sunset each day
-	values := make([]weather.AstroEvent, 0, len(v.forecast.Location.Values)+32)
+	values := make([]AstroEvent, 0, len(v.forecast.Location.Values)+32)
 	one := 1
 	zero := 0
 	for _, m := range v.forecast.Location.Values {
@@ -112,7 +131,7 @@ func (v *VisualCrossing) GetAstrocast() ([]weather.AstroEvent, error) {
 		}
 		// if this is the hour before sunrise, insert sunrise
 		if sunrise.Truncate(time.Hour).Equal(t) {
-			values = append(values, weather.AstroEvent{
+			values = append(values, AstroEvent{
 				Time:  sunrise,
 				SunUp: &one,
 			})
@@ -124,7 +143,7 @@ func (v *VisualCrossing) GetAstrocast() ([]weather.AstroEvent, error) {
 			// 0.5 = full moon
 			// 1   = new moon again
 			moonRatio := 1 - convert.Round(2.0*math.Abs(*m.MoonPhase-0.5), 2)
-			values = append(values, weather.AstroEvent{
+			values = append(values, AstroEvent{
 				Time:          sunset,
 				SunUp:         &zero,
 				FullMoonRatio: &moonRatio,
@@ -136,7 +155,7 @@ func (v *VisualCrossing) GetAstrocast() ([]weather.AstroEvent, error) {
 		if t.Before(sunrise) || t.After(sunset) {
 			sunUp = &zero
 		}
-		values = append(values, weather.AstroEvent{
+		values = append(values, AstroEvent{
 			Time:  t,
 			SunUp: sunUp,
 		})

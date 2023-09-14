@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -19,11 +20,26 @@ import (
 
 	"github.com/tedpearson/ForecastMetrics/v3/http"
 	"github.com/tedpearson/ForecastMetrics/v3/internal/convert"
-	"github.com/tedpearson/ForecastMetrics/v3/weather"
 )
 
 type NWS struct {
+	Retryer  http.Retryer
 	forecast nwsForecast
+}
+
+func (n *NWS) GetForecast(lat string, lon string) (*Forecast, error) {
+	err := n.Init(lat, lon, n.Retryer)
+	if err != nil {
+		return nil, err
+	}
+	weatherRecords, err := n.GetWeather()
+	if err != nil {
+		return nil, err
+	}
+	return &Forecast{
+		WeatherRecords: weatherRecords,
+		AstroEvents:    nil,
+	}, nil
 }
 
 func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
@@ -61,8 +77,8 @@ func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
 	return nil
 }
 
-func (n *NWS) GetWeather() ([]weather.Record, error) {
-	var empty []weather.Record
+func (n *NWS) GetWeather() ([]WeatherRecord, error) {
+	var empty []WeatherRecord
 	records, err := n.transformForecast(n.forecast)
 	if err != nil {
 		return empty, err
@@ -70,52 +86,52 @@ func (n *NWS) GetWeather() ([]weather.Record, error) {
 	return records, nil
 }
 
-func (n *NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) {
+func (n *NWS) transformForecast(forecast nwsForecast) ([]WeatherRecord, error) {
 	props := forecast.Properties
 	var table = []transformation{
 		{
 			measurements: props.Temperature,
-			setter:       weather.SetTemperature,
+			setter:       SetTemperature,
 			conversion:   convert.CToF,
 		},
 		{
 			measurements: props.Dewpoint,
-			setter:       weather.SetDewpoint,
+			setter:       SetDewpoint,
 			conversion:   convert.CToF,
 		},
 		{
 			measurements: props.ApparentTemperature,
-			setter:       weather.SetFeelsLike,
+			setter:       SetFeelsLike,
 			conversion:   convert.CToF,
 		},
 		{
 			measurements: props.SkyCover,
-			setter:       weather.SetSkyCover,
+			setter:       SetSkyCover,
 			conversion:   convert.PercentToRatio,
 		},
 		{
 			measurements: props.WindDirection,
-			setter:       weather.SetWindDirection,
+			setter:       SetWindDirection,
 			conversion:   convert.Identity,
 		},
 		{
 			measurements: props.WindSpeed,
-			setter:       weather.SetWindSpeed,
+			setter:       SetWindSpeed,
 			conversion:   convert.KmhToMph,
 		},
 		{
 			measurements: props.WindGust,
-			setter:       weather.SetWindGust,
+			setter:       SetWindGust,
 			conversion:   convert.KmhToMph,
 		},
 		{
 			measurements: props.ProbabilityOfPrecipitation,
-			setter:       weather.SetPrecipitationProbability,
+			setter:       SetPrecipitationProbability,
 			conversion:   convert.PercentToRatio,
 		},
 		{
 			measurements: props.QuantitativePrecipitation,
-			setter:       weather.SetPreciptationAmount,
+			setter:       SetPreciptationAmount,
 			conversion:   convert.MmToIn,
 			aggregation: func(hours int, val float64) float64 {
 				return val / float64(hours)
@@ -123,7 +139,7 @@ func (n *NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) 
 		},
 		{
 			measurements: props.IceAccumulation,
-			setter:       weather.SetIceAmount,
+			setter:       SetIceAmount,
 			conversion:   convert.MmToIn,
 			aggregation: func(hours int, val float64) float64 {
 				return val / float64(hours)
@@ -131,7 +147,7 @@ func (n *NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) 
 		},
 		{
 			measurements: props.SnowfallAmount,
-			setter:       weather.SetSnowAmount,
+			setter:       SetSnowAmount,
 			conversion:   convert.MmToIn,
 			aggregation: func(hours int, val float64) float64 {
 				return val / float64(hours)
@@ -139,7 +155,7 @@ func (n *NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) 
 		},
 	}
 
-	recordMap := make(map[time.Time]weather.Record)
+	recordMap := make(map[time.Time]WeatherRecord)
 	for _, items := range table {
 		err := processMeasurement(&recordMap, items)
 		if err != nil {
@@ -147,16 +163,19 @@ func (n *NWS) transformForecast(forecast nwsForecast) ([]weather.Record, error) 
 		}
 	}
 
-	values := make([]weather.Record, len(recordMap))
+	values := make([]WeatherRecord, len(recordMap))
 	i := 0
 	for _, value := range recordMap {
 		values[i] = value
 		i++
 	}
+	slices.SortFunc(values, func(a, b WeatherRecord) int {
+		return a.Time.Compare(b.Time)
+	})
 	return values, nil
 }
 
-func processMeasurement(recordMapP *map[time.Time]weather.Record, t transformation) error {
+func processMeasurement(recordMapP *map[time.Time]WeatherRecord, t transformation) error {
 	recordMap := *recordMapP
 	for _, forecastRecord := range t.measurements.Values {
 		hours, err := durationStrToHours(forecastRecord.ValidTime)
@@ -213,7 +232,7 @@ func cleanup(closer io.Closer) {
 
 type transformation struct {
 	measurements nwsForecastMeasurements
-	setter       func(record *weather.Record, val float64)
+	setter       func(record *WeatherRecord, val float64)
 	conversion   func(val float64) float64
 	aggregation  func(hours int, val float64) float64
 }

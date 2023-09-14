@@ -29,43 +29,6 @@ var (
 	buildDate string = "unknown"
 )
 
-type Location struct {
-	Name      string
-	Latitude  string
-	Longitude string
-}
-
-type Influx struct {
-	Host      string
-	AuthToken string `mapstructure:"auth_token"`
-	Org       string
-	Bucket    string
-}
-
-type Config struct {
-	Locations []Location
-	InfluxDB  Influx
-	Forecast  struct {
-		MeasurementName string `mapstructure:"measurement_name"`
-	}
-	Astronomy struct {
-		Enabled         bool
-		MeasurementName string `mapstructure:"measurement_name"`
-	}
-	Sources struct {
-		Enabled        []string
-		VisualCrossing struct {
-			Key string
-		} `mapstructure:"visualcrossing"`
-		TheGlobalWeather struct {
-			Key string
-		} `mapstructure:"theglobalweather"`
-	}
-	HttpCacheDir  string `mapstructure:"http_cache_dir"`
-	StateDir      string `mapstructure:"state_dir"`
-	OverwriteData bool   `mapstructure:"overwrite_data"`
-}
-
 type App struct {
 	forecasters map[string]weather.Forecaster
 	writeApi    api.WriteAPIBlocking
@@ -73,7 +36,7 @@ type App struct {
 	config      Config
 }
 
-func main() {
+func main2() {
 	printVersion()
 	viper.SetConfigName("forecastmetrics")
 	viper.AddConfigPath("/etc")
@@ -101,7 +64,7 @@ func main() {
 	writeApi := c.WriteAPIBlocking(ic.Org, ic.Bucket)
 
 	app := App{
-		forecasters: MakeForecasters(config),
+		forecasters: MakeForecasters(config, retryer),
 		writeApi:    writeApi,
 		retryer:     retryer,
 		config:      config,
@@ -114,11 +77,14 @@ func main() {
 	}
 }
 
-func MakeForecasters(config Config) map[string]weather.Forecaster {
+func MakeForecasters(config Config, retryer myhttp.Retryer) map[string]weather.Forecaster {
 	sources := map[string]weather.Forecaster{
-		"nws": &source.NWS{},
+		"nws": &source.NWS{
+			Retryer: retryer,
+		},
 		"visualcrossing": &source.VisualCrossing{
-			Key: config.Sources.VisualCrossing.Key,
+			Retryer: retryer,
+			Key:     config.Sources.VisualCrossing.Key,
 		},
 	}
 	return sources
@@ -156,34 +122,32 @@ func (app App) RunForecast(src string, loc Location) {
 	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`,
 		len(records), loc.Name, src, c.Forecast.MeasurementName, ft)
 
-	points := weather.RecordsToPoints(records, forecastOptions)
-	if err = app.writeApi.WritePoint(context.Background(), points...); err != nil {
-		log.Printf("%+v", err)
-	}
-	// write next hour to past forecast measurement
-	if !c.OverwriteData {
-		nextHour := time.Now().Truncate(time.Hour).Add(time.Hour)
-		for _, record := range records {
-			if nextHour.Equal(record.Time) {
-				nextHourRecord := []weather.Record{record}
-				nextHourOptions := forecastOptions
-				f := "0"
-				nextHourOptions.ForecastTime = &f
-				points = weather.RecordsToPoints(nextHourRecord, nextHourOptions)
-				if err = app.writeApi.WritePoint(context.Background(), points...); err != nil {
-					log.Printf("%+v", err)
-				}
-				break
-			}
-		}
-	}
+	//points := weather.RecordsToPoints(records, forecastOptions)
+	//if err = app.writeApi.WritePoint(context.Background(), points...); err != nil {
+	//	log.Printf("%+v", err)
+	//}
+	//// write next hour to past forecast measurement
+	//if !c.OverwriteData {
+	//	nextHour := time.Now().Truncate(time.Hour).Add(time.Hour)
+	//	for _, record := range records {
+	//		if nextHour.Equal(record.Time) {
+	//			nextHourRecord := []weather.WeatherRecord{record}
+	//			nextHourOptions := forecastOptions
+	//			f := "0"
+	//			nextHourOptions.ForecastTime = &f
+	//			points = weather.RecordsToPoints(nextHourRecord, nextHourOptions)
+	//			if err = app.writeApi.WritePoint(context.Background(), points...); err != nil {
+	//				log.Printf("%+v", err)
+	//			}
+	//			break
+	//		}
+	//	}
+	//}
 	// write astronomy
 	astronomyOptions := forecastOptions
 	astronomyOptions.MeasurementName = c.Astronomy.MeasurementName
 	astronomyOptions.ForecastTime = nil
-	if c.Astronomy.Enabled {
-		app.RunAstrocast(forecaster, astronomyOptions)
-	}
+	app.RunAstrocast(forecaster, astronomyOptions)
 }
 
 func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.WriteOptions) {
@@ -198,9 +162,9 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 	}
 	// filter points to only those after last written point
 	stateFile := filepath.Join(app.config.StateDir, options.ForecastSource, options.Location)
-	lastWrittenTime := ReadState(stateFile)
+	lastWrittenTime := readState(stateFile)
 	lastTimePoint := lastWrittenTime
-	eventsToWrite := make([]weather.AstroEvent, 0)
+	eventsToWrite := make([]source.AstroEvent, 0)
 	for _, event := range events {
 		if event.Time.After(lastWrittenTime) {
 			eventsToWrite = append(eventsToWrite, event)
@@ -211,12 +175,12 @@ func (app App) RunAstrocast(forecaster weather.Forecaster, options weather.Write
 	}
 	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"}`,
 		len(eventsToWrite), options.Location, options.ForecastSource, options.MeasurementName)
-	points := weather.AstroToPoints(eventsToWrite, options)
-	err = app.writeApi.WritePoint(context.Background(), points...)
-	if err != nil {
-		log.Printf("%+v", err)
-		return
-	}
+	//points := weather.AstroToPoints(eventsToWrite, options)
+	//err = app.writeApi.WritePoint(context.Background(), points...)
+	//if err != nil {
+	//	log.Printf("%+v", err)
+	//	return
+	//}
 	// save lastTimePoint
 	WriteState(stateFile, lastTimePoint)
 }
@@ -230,20 +194,6 @@ func WriteMeasurements(apiWrite api.WriteAPIBlocking, points []*write.Point, err
 		return errors.WithStack(err)
 	}
 	return nil
-}
-
-func ReadState(stateFile string) time.Time {
-	state, err := os.ReadFile(stateFile)
-	lastWrittenTime := time.Now()
-	if err != nil {
-		log.Printf("Failed to load state: %+v", err)
-	} else {
-		err = json.Unmarshal(state, &lastWrittenTime)
-		if err != nil {
-			log.Printf("Failed to unmarshal state: %+v", err)
-		}
-	}
-	return lastWrittenTime
 }
 
 func WriteState(stateFile string, time time.Time) {
