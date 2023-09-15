@@ -59,7 +59,6 @@ func main() {
 	//   needs metric updater service
 	//   ✅needs config service
 	dispatcher := NewDispatcher(forecasters, configService, scheduler, config.AdHocCacheEntries)
-	prometheus := Prometheus{LocationService: locationService}
 	// ✅create http handler
 	//   creates prometheus converter
 	//   ✅needs name processor
@@ -67,7 +66,6 @@ func main() {
 	server := Server{
 		LocationService: locationService,
 		Dispatcher:      dispatcher,
-		Prometheus:      prometheus,
 	}
 	server.Start(config.ServerPort)
 }
@@ -91,7 +89,8 @@ func MakeForecastersV2(cacheDir string, vcKey string) map[string]source.Forecast
 }
 
 // todo
-//   pass src/location to prometheus code.
-//   prometheus protocol handling
 //   capture args from prometheus and send to prometheus handlers
 //   understand buffered channels
+//   proxy correctly
+//   documentation
+//   handle 404 from nws at least, maybe vc
