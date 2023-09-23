@@ -109,7 +109,7 @@ func (app App) RunForecast(src string, loc Location) {
 		Location:        loc.Name,
 	}
 	if !c.OverwriteData {
-		forecastTime := time.Now().Truncate(time.Hour).Format("2006-01-02:15")
+		forecastTime := time.Now().Truncate(time.Hour).Format(ForecastTimeFormat)
 		forecastOptions.ForecastTime = &forecastTime
 	}
 

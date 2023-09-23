@@ -66,6 +66,8 @@ func main() {
 	server := Server{
 		LocationService: locationService,
 		Dispatcher:      dispatcher,
+		ConfigService:   configService,
+		AuthToken:       config.InfluxDB.AuthToken,
 	}
 	server.Start(config.ServerPort)
 }
@@ -89,8 +91,15 @@ func MakeForecastersV2(cacheDir string, vcKey string) map[string]source.Forecast
 }
 
 // todo
-//   capture args from prometheus and send to prometheus handlers
-//   understand buffered channels
-//   proxy correctly
+//   handle authentication (i think this is done, test)
 //   documentation
 //   handle 404 from nws at least, maybe vc
+//   don't hard code metric names
+//   write state file for astrocast again
+//   improve logging
+//   consider caching situation (http, dispatcher)
+//   remove old code
+//   rename ForecastersV2 to Forecasters
+//   deployment stuff
+//   read all code and improve things like err handling.
+//   make influx forwarded token and our required auth token allowed to be different

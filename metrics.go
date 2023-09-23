@@ -17,6 +17,8 @@ import (
 	"github.com/tedpearson/ForecastMetrics/v3/weather"
 )
 
+const ForecastTimeFormat = "2006-01-02:15"
+
 // writes all metrics to VM
 type MetricUpdater struct {
 	writeApi           api.WriteAPIBlocking
@@ -34,7 +36,7 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 		Location:        location,
 	}
 	if !m.overwrite {
-		forecastTime := time.Now().Truncate(time.Hour).Format("2006-01-02:15")
+		forecastTime := time.Now().Truncate(time.Hour).Format(ForecastTimeFormat)
 		forecastOptions.ForecastTime = &forecastTime
 	}
 
