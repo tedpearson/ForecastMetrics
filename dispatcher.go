@@ -98,14 +98,12 @@ func (d *Dispatcher) runLoop() {
 func (d *Dispatcher) forwardRequest(key CacheKey) {
 	if forecaster, ok := d.forecasters[key.Source]; ok {
 		forecast, err := forecaster.GetForecast(key.Location.Latitude, key.Location.Longitude)
-		if err == nil {
-			d.results <- Result{
-				CacheKey: key,
-				Reply: Reply{
-					Forecast: forecast,
-					Error:    err,
-				},
-			}
+		d.results <- Result{
+			CacheKey: key,
+			Reply: Reply{
+				Forecast: forecast,
+				Error:    err,
+			},
 		}
 	} else {
 		d.results <- Result{
