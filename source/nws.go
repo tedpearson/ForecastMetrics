@@ -224,7 +224,7 @@ func durationStrToHours(dateString string) ([]time.Time, error) {
 func cleanup(closer io.Closer) {
 	// todo: better error handling
 	if closer.Close() != nil {
-		fmt.Fatalln("Failed to cleanup")
+		panic("Failed to cleanup")
 	}
 }
 
