@@ -170,11 +170,11 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 		adhoc = true
 	}
 	location, err := s.LocationService.ParseLocation(loc)
-	pq.Location = *location
-	pq.AdHoc = adhoc
 	if err != nil {
 		return nil, err
 	}
+	pq.Location = *location
+	pq.AdHoc = adhoc
 	if pq.Source, ok = tags["source"]; !ok {
 		return nil, errors.New("no source tag found")
 	}

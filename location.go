@@ -70,6 +70,9 @@ func (l LocationService) lookup(s string, location *Location) error {
 	}
 	record := val.Get("resourceSets", "0", "resources", "0")
 	coords := record.GetArray("point", "coordinates")
+	if record == nil || coords == nil {
+		return fmt.Errorf("failed to look up location '%s'", s)
+	}
 	latF, err := coords[0].Float64()
 	if err != nil {
 		fmt.Printf("Failed to get coordinates from json %s\n", buf.String())
