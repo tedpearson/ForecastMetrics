@@ -38,6 +38,7 @@ func (s *Server) Start(port int64) {
 func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// handle auth
 	if !Auth(req.Header.Get("Authorization"), s.AuthToken) {
+		resp.Header().Set("WWW-Authenticate", `Basic realm="ForecastMetrics", charset="UTF-8"`)
 		resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
