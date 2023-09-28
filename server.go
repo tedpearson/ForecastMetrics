@@ -53,6 +53,7 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	params, err := s.ParseParams(req)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Printf("Failed to parse params: %s\n", err)
 		return
 	}
 
