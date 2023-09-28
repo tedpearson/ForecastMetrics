@@ -92,7 +92,6 @@ func MakeForecastersV2(cacheDir string, vcKey string) map[string]source.Forecast
 
 // todo
 //  x documentation
-//  x don't hard code metric names
 //  x write state file for astrocast again
 //   improve logging
 //   consider caching situation (http, dispatcher)

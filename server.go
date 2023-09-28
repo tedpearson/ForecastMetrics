@@ -25,9 +25,6 @@ type Server struct {
 }
 
 func (s *Server) Start(port int64) {
-	//   creates prometheus converter
-	//   creates name processor?
-	//   needs forecast dispatcher
 	http.Handle("/", s)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	if err != nil {
@@ -140,7 +137,7 @@ func (p Params) String() string {
 }
 
 // fixme: don't hard code metric names
-var queryRE = regexp.MustCompile(`((?:forecast2_|astronomy_)\w+)\{(.+)\}`)
+var queryRE = regexp.MustCompile(`(\w+)\{(.+)\}`)
 var tagRE = regexp.MustCompile(`(\w+)="([^"]+)",?`)
 
 type ParsedQuery struct {
@@ -158,6 +155,11 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 	pq := &ParsedQuery{
 		Metric: matches[1],
 	}
+	if strings.Index(pq.Metric, s.ConfigService.Config.Forecast.MeasurementName) != 0 &&
+		strings.Index(pq.Metric, s.ConfigService.Config.Astronomy.MeasurementName) != 0 {
+		return nil, fmt.Errorf("invalid metric name: %s", pq.Metric)
+	}
+
 	tagMatches := tagRE.FindAllStringSubmatch(matches[2], -1)
 	tags := make(map[string]string)
 	for _, tagMatch := range tagMatches {
