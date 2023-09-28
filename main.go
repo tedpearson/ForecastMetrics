@@ -15,7 +15,6 @@ import (
 	"github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
 	myhttp "github.com/tedpearson/ForecastMetrics/v3/http"
@@ -191,7 +190,7 @@ func WriteMeasurements(apiWrite api.WriteAPIBlocking, points []*write.Point, err
 	}
 	err = apiWrite.WritePoint(context.Background(), points...)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	return nil
 }

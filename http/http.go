@@ -1,12 +1,12 @@
 package http
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/cenkalti/backoff/v3"
-	"github.com/pkg/errors"
 )
 
 type Retryer struct {
@@ -17,7 +17,7 @@ func (r Retryer) RetryRequest(url string, off *backoff.ExponentialBackOff) (io.R
 	var body *io.ReadCloser
 	err := backoff.Retry(r.doRequest(url, &body), off)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	return *body, nil
 }

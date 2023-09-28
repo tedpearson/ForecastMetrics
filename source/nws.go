@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v3"
-	"github.com/pkg/errors"
 	"github.com/rickb777/date/period"
 
 	"github.com/tedpearson/ForecastMetrics/v3/http"
@@ -56,7 +55,7 @@ func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
 	var jsonResponse map[string]interface{}
 	err = json.NewDecoder(body1).Decode(&jsonResponse)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	gridpointUrl := jsonResponse["properties"].(map[string]interface{})["forecastGridData"].(string)
 	// okay we have a gridpoint url. get it and turn it into an object and do fun things with it
@@ -70,7 +69,7 @@ func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
 	var forecast nwsForecast
 	err = json.NewDecoder(body2).Decode(&forecast)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	n.forecast = forecast
 	return nil
@@ -203,14 +202,14 @@ func durationStrToHours(dateString string) ([]time.Time, error) {
 	// calculate duration in hours
 	duration, err := period.Parse(split[1])
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	hours := int(math.Ceil(duration.DurationApprox().Hours()))
 
 	// parse time(hour), defaulting to UTC. for some reason Parse() doesn't work to default to UTC.
 	point, err := time.ParseInLocation(time.RFC3339, split[0], nil)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	// make a slice with all the hours contained in the duration

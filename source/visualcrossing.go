@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v3"
-	"github.com/pkg/errors"
 
 	"github.com/tedpearson/ForecastMetrics/v3/http"
 	"github.com/tedpearson/ForecastMetrics/v3/internal/convert"
@@ -62,7 +61,7 @@ func (v *VisualCrossing) Init(lat string, lon string, retryer http.Retryer) erro
 	var forecast vcForecast
 	err = json.NewDecoder(body).Decode(&forecast)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	v.forecast = forecast
 	return nil
@@ -81,7 +80,7 @@ func (v *VisualCrossing) GetWeather() ([]WeatherRecord, error) {
 		}
 		t, err := time.Parse(time.RFC3339, m.DatetimeStr)
 		if err != nil {
-			return empty, errors.WithStack(err)
+			return empty, err
 		}
 		skyCover := convert.PercentToRatio(*m.CloudCover)
 		var precipProb *float64
@@ -119,15 +118,15 @@ func (v *VisualCrossing) GetAstrocast() ([]AstroEvent, error) {
 		}
 		t, err := time.Parse(time.RFC3339, m.DatetimeStr)
 		if err != nil {
-			return empty, errors.WithStack(err)
+			return empty, err
 		}
 		sunrise, err := time.Parse(time.RFC3339, *m.Sunrise)
 		if err != nil {
-			return empty, errors.WithStack(err)
+			return empty, err
 		}
 		sunset, err := time.Parse(time.RFC3339, *m.Sunset)
 		if err != nil {
-			return empty, errors.WithStack(err)
+			return empty, err
 		}
 		// if this is the hour before sunrise, insert sunrise
 		if sunrise.Truncate(time.Hour).Equal(t) {
