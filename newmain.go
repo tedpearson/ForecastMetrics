@@ -91,15 +91,13 @@ func MakeForecastersV2(cacheDir string, vcKey string) map[string]source.Forecast
 }
 
 // todo
-//   handle authentication (i think this is done, test)
-//   documentation
-//   handle 404 from nws at least, maybe vc
-//   don't hard code metric names
-//   write state file for astrocast again
+//  x documentation
+//  x don't hard code metric names
+//  x write state file for astrocast again
 //   improve logging
 //   consider caching situation (http, dispatcher)
-//   remove old code
-//   rename ForecastersV2 to Forecasters
-//   deployment stuff
+//  x remove old code
+//  x rename ForecastersV2 to Forecasters
+//  x deployment stuff
 //   read all code and improve things like err handling.
 //   make influx forwarded token and our required auth token allowed to be different

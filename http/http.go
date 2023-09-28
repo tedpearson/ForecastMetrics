@@ -34,6 +34,9 @@ func (r Retryer) doRequest(url string, body **io.ReadCloser) func() error {
 		if err != nil {
 			return backoff.Permanent(err)
 		}
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			return backoff.Permanent(fmt.Errorf("http error for url %s: %s", url, resp.Status))
+		}
 		if resp.StatusCode != 200 {
 			msg := fmt.Sprintf("Error status %d: %s", resp.StatusCode, resp.Status)
 			fmt.Println(msg)
