@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -54,36 +54,36 @@ func (l LocationService) lookup(s string, location *Location) error {
 	q.Add("key", l.BingToken)
 	resp, err := http.Get("http://dev.virtualearth.net/REST/v1/Locations?" + q.Encode())
 	if err != nil {
-		log.Printf("Failed to look up %s", s)
+		fmt.Printf("Failed to look up %s\n", s)
 		return err
 	}
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, resp.Body)
 	if err != nil {
-		log.Printf("Failed to copy from response")
+		fmt.Printf("Failed to copy from response\n")
 		return err
 	}
 	val, err := fastjson.ParseBytes(buf.Bytes())
 	if err != nil {
-		log.Printf("Failed to parse json %s", buf.String())
+		fmt.Printf("Failed to parse json %s\n", buf.String())
 		return err
 	}
 	record := val.Get("resourceSets", "0", "resources", "0")
 	coords := record.GetArray("point", "coordinates")
 	latF, err := coords[0].Float64()
 	if err != nil {
-		log.Printf("Failed to get coordinates from json %s", buf.String())
+		fmt.Printf("Failed to get coordinates from json %s\n", buf.String())
 		return err
 	}
 	lonF, err := coords[1].Float64()
 	if err != nil {
-		log.Printf("Failed to get coordinates from json %s", buf.String())
+		fmt.Printf("Failed to get coordinates from json %s\n", buf.String())
 		return err
 	}
 	if location.Name == "" {
 		name := record.GetStringBytes("name")
 		if name == nil {
-			log.Printf("Failed to get name from json %s", buf.String())
+			fmt.Printf("Failed to get name from json %s\n", buf.String())
 			return err
 		}
 		location.Name = string(name)

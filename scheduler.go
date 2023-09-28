@@ -43,7 +43,7 @@ func (s Scheduler) UpdateForecast(location Location) {
 	for src, forecaster := range s.Forecasters {
 		forecast, err := forecaster.GetForecast(location.Latitude, location.Longitude)
 		if err != nil {
-			fmt.Printf("Failed to get forecast for %+v from %s: %v", location, src, err)
+			fmt.Printf("Failed to get forecast for %+v from %s: %v\n", location, src, err)
 			continue
 		}
 		s.MetricUpdater.WriteMetrics(*forecast, location.Name, src)

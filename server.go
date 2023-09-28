@@ -64,11 +64,11 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		proxying = " (proxying)"
 		return
 	}
-	fmt.Printf("Request%s: %s", proxying, params)
+	fmt.Printf("Request%s: %s\n", proxying, params)
 
 	forecast, err := s.Dispatcher.GetForecast(params.Location, params.Source, params.AdHoc)
 	if err != nil {
-		fmt.Printf("Error getting forecast: %+v", err)
+		fmt.Printf("Error getting forecast: %+v\n", err)
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -83,7 +83,7 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 	_, err = resp.Write(respJson)
 	if err != nil {
-		fmt.Printf("Error writing response to client: %+v", err)
+		fmt.Printf("Error writing response to client: %+v\n", err)
 	}
 }
 

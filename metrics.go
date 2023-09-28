@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -45,12 +45,12 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 		ft = *forecastOptions.ForecastTime
 	}
 	records := forecast.WeatherRecords
-	log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`,
+	fmt.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s", forecast_time:"%s"}`+"\n",
 		len(records), location, src, m.weatherMeasurement, ft)
 
 	points := toPoints(records, forecastOptions)
 	if err := m.writeApi.WritePoint(context.Background(), points...); err != nil {
-		log.Printf("%+v", err)
+		fmt.Printf("%+v\n", err)
 	}
 
 	// write next hour to past forecast measurement
@@ -64,7 +64,7 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 				nextHourOptions.ForecastTime = &f
 				points = toPoints(nextHourRecord, nextHourOptions)
 				if err := m.writeApi.WritePoint(context.Background(), points...); err != nil {
-					log.Printf("%+v", err)
+					fmt.Printf("%+v\n", err)
 				}
 				break
 			}
@@ -89,11 +89,11 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 				lastTimePoint = event.Time
 			}
 		}
-		log.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"}`,
+		fmt.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"}`+"\n",
 			len(eventsToWrite), location, src, m.astroMeasurement)
 		points := toPoints(eventsToWrite, astronomyOptions)
 		if err := m.writeApi.WritePoint(context.Background(), points...); err != nil {
-			log.Printf("%+v", err)
+			fmt.Printf("%+v\n", err)
 			return
 		}
 	}
@@ -103,11 +103,11 @@ func readState(stateFile string) time.Time {
 	state, err := os.ReadFile(stateFile)
 	lastWrittenTime := time.Now()
 	if err != nil {
-		log.Printf("Failed to load state: %+v", err)
+		fmt.Printf("Failed to load state: %+v\n", err)
 	} else {
 		err = json.Unmarshal(state, &lastWrittenTime)
 		if err != nil {
-			log.Printf("Failed to unmarshal state: %+v", err)
+			fmt.Printf("Failed to unmarshal state: %+v\n", err)
 		}
 	}
 	return lastWrittenTime

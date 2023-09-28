@@ -3,7 +3,6 @@ package http
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/cenkalti/backoff/v3"
@@ -37,7 +36,7 @@ func (r Retryer) doRequest(url string, body **io.ReadCloser) func() error {
 		}
 		if resp.StatusCode != 200 {
 			msg := fmt.Sprintf("Error status %d: %s", resp.StatusCode, resp.Status)
-			log.Println(msg)
+			fmt.Println(msg)
 			return errors.New(msg)
 		}
 		*body = &resp.Body

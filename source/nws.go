@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"slices"
 	"strings"
@@ -45,7 +44,7 @@ func (n *NWS) GetForecast(lat string, lon string) (*Forecast, error) {
 func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
 	// find gridpoint
 	url := fmt.Sprintf("https://api.weather.gov/points/%s,%s", lat, lon)
-	log.Println("Looking up NWS location")
+	fmt.Println("Looking up NWS location")
 
 	off := backoff.NewExponentialBackOff()
 	off.MaxElapsedTime = 22 * time.Second
@@ -61,7 +60,7 @@ func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
 	}
 	gridpointUrl := jsonResponse["properties"].(map[string]interface{})["forecastGridData"].(string)
 	// okay we have a gridpoint url. get it and turn it into an object and do fun things with it
-	log.Println("Getting NWS forecast")
+	fmt.Println("Getting NWS forecast")
 	body2, err := retryer.RetryRequest(gridpointUrl, off)
 	if err != nil {
 		return err
@@ -226,7 +225,7 @@ func durationStrToHours(dateString string) ([]time.Time, error) {
 func cleanup(closer io.Closer) {
 	// todo: better error handling
 	if closer.Close() != nil {
-		log.Fatalln("Failed to cleanup")
+		fmt.Fatalln("Failed to cleanup")
 	}
 }
 
