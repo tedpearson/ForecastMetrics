@@ -128,6 +128,16 @@ func (v *VisualCrossing) GetAstrocast() ([]AstroEvent, error) {
 		if err != nil {
 			return empty, err
 		}
+		// if hour < sunrise or > sunset, 0.
+		// else 1.
+		sunUp := &one
+		if t.Before(sunrise) || t.After(sunset) {
+			sunUp = &zero
+		}
+		values = append(values, AstroEvent{
+			Time:  t,
+			SunUp: sunUp,
+		})
 		// if this is the hour before sunrise, insert sunrise
 		if sunrise.Truncate(time.Hour).Equal(t) {
 			values = append(values, AstroEvent{
@@ -148,16 +158,6 @@ func (v *VisualCrossing) GetAstrocast() ([]AstroEvent, error) {
 				FullMoonRatio: &moonRatio,
 			})
 		}
-		// if hour < sunrise or > sunset, 0.
-		// else 1.
-		sunUp := &one
-		if t.Before(sunrise) || t.After(sunset) {
-			sunUp = &zero
-		}
-		values = append(values, AstroEvent{
-			Time:  t,
-			SunUp: sunUp,
-		})
 	}
 	return values, nil
 }
