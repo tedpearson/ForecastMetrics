@@ -36,7 +36,7 @@ type InfluxPointer interface {
 	WeatherRecord | AstroEvent
 }
 
-type ForecasterV2 interface {
+type Forecaster interface {
 	GetForecast(lat string, lon string) (*Forecast, error)
 }
 

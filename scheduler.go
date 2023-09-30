@@ -13,7 +13,7 @@ import (
 type Scheduler struct {
 	ConfigService ConfigService
 	MetricUpdater MetricUpdater
-	Forecasters   map[string]source.ForecasterV2
+	Forecasters   map[string]source.Forecaster
 }
 
 // runs a forecast update for all configured locations/sources every hour

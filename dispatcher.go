@@ -13,7 +13,7 @@ import (
 
 type Dispatcher struct {
 	cache         *cache.Cache[CacheKey, Reply]
-	forecasters   map[string]source.ForecasterV2
+	forecasters   map[string]source.Forecaster
 	scheduler     Scheduler
 	configService ConfigService
 	requests      chan Request
@@ -42,7 +42,7 @@ type Reply struct {
 	Error    error
 }
 
-func NewDispatcher(forecasters map[string]source.ForecasterV2, configService ConfigService, scheduler Scheduler, cacheCapacity int) *Dispatcher {
+func NewDispatcher(forecasters map[string]source.Forecaster, configService ConfigService, scheduler Scheduler, cacheCapacity int) *Dispatcher {
 	d := &Dispatcher{
 		cache:         cache.New(cache.AsLRU[CacheKey, Reply](lru.WithCapacity(cacheCapacity))),
 		forecasters:   forecasters,

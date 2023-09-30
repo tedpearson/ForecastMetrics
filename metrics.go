@@ -2,10 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"time"
 
@@ -14,10 +11,16 @@ import (
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
 
 	"github.com/tedpearson/ForecastMetrics/v3/source"
-	"github.com/tedpearson/ForecastMetrics/v3/weather"
 )
 
 const ForecastTimeFormat = "2006-01-02:15"
+
+type WriteOptions struct {
+	ForecastSource  string
+	MeasurementName string
+	Location        string
+	ForecastTime    *string
+}
 
 // writes all metrics to VM
 type MetricUpdater struct {
@@ -25,12 +28,11 @@ type MetricUpdater struct {
 	overwrite          bool
 	weatherMeasurement string
 	astroMeasurement   string
-	astroStateDir      string
 }
 
 // takes forecast, location, source
 func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, src string) {
-	forecastOptions := weather.WriteOptions{
+	forecastOptions := WriteOptions{
 		ForecastSource:  src,
 		MeasurementName: m.weatherMeasurement,
 		Location:        location,
@@ -76,22 +78,9 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 		astronomyOptions := forecastOptions
 		astronomyOptions.MeasurementName = m.astroMeasurement
 		astronomyOptions.ForecastTime = nil
-		// filter points to only those after last written point
-		stateFile := filepath.Join(m.astroStateDir, src, location)
-		lastWrittenTime := readState(stateFile)
-		lastTimePoint := lastWrittenTime
-		eventsToWrite := make([]source.AstroEvent, 0)
-		for _, event := range forecast.AstroEvents {
-			if event.Time.After(lastWrittenTime) {
-				eventsToWrite = append(eventsToWrite, event)
-			}
-			if event.Time.After(lastTimePoint) {
-				lastTimePoint = event.Time
-			}
-		}
 		fmt.Printf(`Writing %d points {loc:"%s", src:"%s", measurement:"%s"}`+"\n",
-			len(eventsToWrite), location, src, m.astroMeasurement)
-		points := toPoints(eventsToWrite, astronomyOptions)
+			len(forecast.AstroEvents), location, src, m.astroMeasurement)
+		points := toPoints(forecast.AstroEvents, astronomyOptions)
 		if err := m.writeApi.WritePoint(context.Background(), points...); err != nil {
 			fmt.Printf("%+v\n", err)
 			return
@@ -99,21 +88,7 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 	}
 }
 
-func readState(stateFile string) time.Time {
-	state, err := os.ReadFile(stateFile)
-	lastWrittenTime := time.Now()
-	if err != nil {
-		fmt.Printf("Failed to load state: %+v\n", err)
-	} else {
-		err = json.Unmarshal(state, &lastWrittenTime)
-		if err != nil {
-			fmt.Printf("Failed to unmarshal state: %+v\n", err)
-		}
-	}
-	return lastWrittenTime
-}
-
-func toPoints[IP source.InfluxPointer](ip []IP, options weather.WriteOptions) []*write.Point {
+func toPoints[IP source.InfluxPointer](ip []IP, options WriteOptions) []*write.Point {
 	points := make([]*write.Point, 0, len(ip))
 	for _, item := range ip {
 		t := reflect.ValueOf(item).FieldByName("Time").Interface().(time.Time)
@@ -127,7 +102,7 @@ func toPoints[IP source.InfluxPointer](ip []IP, options weather.WriteOptions) []
 	return points
 }
 
-func toPoint(t time.Time, i interface{}, options weather.WriteOptions) *write.Point {
+func toPoint(t time.Time, i interface{}, options WriteOptions) *write.Point {
 	tags := map[string]string{
 		"source":   options.ForecastSource,
 		"location": options.Location,

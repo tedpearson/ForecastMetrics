@@ -2,6 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
+	"slices"
 	"sync"
 
 	"github.com/gregjones/httpcache"
@@ -12,13 +15,24 @@ import (
 	"github.com/tedpearson/ForecastMetrics/v3/source"
 )
 
+var (
+	version   string = "development"
+	goVersion string = "unknown"
+	buildDate string = "unknown"
+)
+
 func main() {
 	// separate out metric updating
 	// separate out forecast request processing
 
 	// parse flags
 	configFile := flag.String("config", "forecastmetrics.yaml", "Config file")
+	versionFlag := flag.Bool("v", false, "Show version and exit")
 	flag.Parse()
+	fmt.Printf("ForecastMetrics %s built on %s with %s\n", version, buildDate, goVersion)
+	if *versionFlag {
+		os.Exit(0)
+	}
 	// parse config
 	config := mustParseConfig(*configFile)
 	// create name processor
@@ -32,7 +46,7 @@ func main() {
 		lock:       &sync.Mutex{},
 	}
 	// ✅create Forecasters
-	forecasters := MakeForecastersV2(config.HttpCacheDir, config.Sources.VisualCrossing.Key)
+	forecasters := MakeForecasters(config.Sources.Enabled, config.HttpCacheDir, config.Sources.VisualCrossing.Key)
 	// ✅create metric updater service
 	c := influxdb2.NewClient(config.InfluxDB.Host, config.InfluxDB.AuthToken)
 	writeApi := c.WriteAPIBlocking(config.InfluxDB.Org, config.InfluxDB.Bucket)
@@ -41,7 +55,6 @@ func main() {
 		overwrite:          config.OverwriteData,
 		weatherMeasurement: config.Forecast.MeasurementName,
 		astroMeasurement:   config.Astronomy.MeasurementName,
-		astroStateDir:      config.StateDir,
 	}
 	// ✅create scheduled forecast updater
 	//   ✅needs config service
@@ -72,14 +85,14 @@ func main() {
 	server.Start(config.ServerPort)
 }
 
-func MakeForecastersV2(cacheDir string, vcKey string) map[string]source.ForecasterV2 {
+func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string]source.Forecaster {
 	// create retryer
 	client := httpcache.NewTransport(diskcache.New(cacheDir)).Client()
 	//client.Timeout = 2 * time.Second
 	retryer := myhttp.Retryer{
 		Client: client,
 	}
-	return map[string]source.ForecasterV2{
+	forecasters := map[string]source.Forecaster{
 		"nws": &source.NWS{
 			Retryer: retryer,
 		},
@@ -88,15 +101,21 @@ func MakeForecastersV2(cacheDir string, vcKey string) map[string]source.Forecast
 			Key:     vcKey,
 		},
 	}
+	// only return enabled forecasters
+	for name := range forecasters {
+		if !slices.Contains(enabled, name) {
+			delete(forecasters, name)
+		}
+	}
+	return forecasters
 }
 
 // todo
 //  x documentation
-//  x write state file for astrocast again
 //   improve logging
 //   consider caching situation (http, dispatcher)
-//  x remove old code
 //  x rename ForecastersV2 to Forecasters
 //  x deployment stuff
 //   read all code and improve things like err handling.
 //   make influx forwarded token and our required auth token allowed to be different
+//   update readme

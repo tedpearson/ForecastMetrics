@@ -37,7 +37,6 @@ type Config struct {
 		} `yaml:"visualcrossing"`
 	}
 	HttpCacheDir      string `yaml:"http_cache_dir"`
-	StateDir          string `yaml:"state_dir"`
 	OverwriteData     bool   `yaml:"overwrite_data"`
 	BingToken         string `yaml:"bing_token"`
 	ServerPort        int64  `yaml:"server_port"`
