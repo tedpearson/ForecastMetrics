@@ -43,6 +43,7 @@ func (s Scheduler) updateForecasts() {
 // UpdateForecast gets the forecast and writes the metrics to the database for every enabled Forecaster.
 func (s Scheduler) UpdateForecast(location Location) {
 	for src, forecaster := range s.Forecasters {
+		fmt.Printf("Getting scheduled forecast for %s from %T\n", location.Name, forecaster)
 		forecast, err := forecaster.GetForecast(location.Latitude, location.Longitude)
 		if err != nil {
 			fmt.Printf("Failed to get forecast for %+v from %s: %v\n", location, src, err)

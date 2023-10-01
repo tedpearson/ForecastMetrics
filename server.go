@@ -62,15 +62,12 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// check if we should proxy
-	proxying := ""
 	if s.ConfigService.HasLocation(params.Location) {
 		// prepare body to be read by reverse proxy
 		req.Body = io.NopCloser(bytes.NewReader(body))
 		s.Proxy(resp, req, *params)
-		proxying = " (proxying)"
 		return
 	}
-	fmt.Printf("Request%s: %s\n", proxying, params)
 
 	forecast, err := s.Dispatcher.GetForecast(params.Location, params.Source, params.AdHoc)
 	if err != nil {
@@ -107,6 +104,7 @@ func Auth(authHeader, authToken string) bool {
 
 // Proxy proxies the request to the database.
 func (s *Server) Proxy(resp http.ResponseWriter, req *http.Request, params Params) {
+	fmt.Printf("Proxying forecast for %s from %s\n", params.Location.Name, params.Source)
 	u, _ := url.Parse(s.ProxyUrl)
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {

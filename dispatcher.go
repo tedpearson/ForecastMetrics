@@ -108,6 +108,7 @@ func (d *Dispatcher) runLoop() {
 // forwardRequest gets the forecast from a forecaster and puts the response on the results channel for the run loop.
 func (d *Dispatcher) forwardRequest(key CacheKey) {
 	if forecaster, ok := d.forecasters[key.Source]; ok {
+		fmt.Printf("Getting ad-hoc forecast for %s from %T\n", key.Location.Name, forecaster)
 		forecast, err := forecaster.GetForecast(key.Location.Latitude, key.Location.Longitude)
 		d.results <- Result{
 			CacheKey: key,
@@ -146,6 +147,7 @@ func (d *Dispatcher) GetForecast(location Location, source string, adHoc bool) (
 // addScheduledLocation populates the database with the first forecast for this location,
 // then adds the location to the config.
 func (d *Dispatcher) addScheduledLocation(location Location) {
+	fmt.Printf("Adding %s to regularly updated locations in config\n", location.Name)
 	d.scheduler.UpdateForecast(location)
 	d.configService.AddLocation(location)
 }

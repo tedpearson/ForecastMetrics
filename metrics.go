@@ -53,7 +53,7 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 
 	points := toPoints(records, forecastOptions)
 	if err := m.writeApi.WritePoint(context.Background(), points...); err != nil {
-		fmt.Printf("%+v\n", err)
+		fmt.Printf("Error writing weather forecast point: %+v\n", err)
 	}
 
 	// write next hour to past forecast measurement
@@ -67,7 +67,7 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 				nextHourOptions.ForecastTime = &f
 				points = toPoints(nextHourRecord, nextHourOptions)
 				if err := m.writeApi.WritePoint(context.Background(), points...); err != nil {
-					fmt.Printf("%+v\n", err)
+					fmt.Printf("Error writing weather forecast point: %+v\n", err)
 				}
 				break
 			}
@@ -83,7 +83,7 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 			len(forecast.AstroEvents), location, src, m.astroMeasurement)
 		points := toPoints(forecast.AstroEvents, astronomyOptions)
 		if err := m.writeApi.WritePoint(context.Background(), points...); err != nil {
-			fmt.Printf("%+v\n", err)
+			fmt.Printf("Error writing astronomy forecast point: %+v\n", err)
 			return
 		}
 	}

@@ -2,7 +2,6 @@ package source
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"net/url"
 	"time"
@@ -34,7 +33,6 @@ func (v *VisualCrossing) GetForecast(lat string, lon string) (*Forecast, error) 
 	off := backoff.NewExponentialBackOff()
 	// note: low number of retries because we are using free tier (250 results/day)
 	off.MaxElapsedTime = 4 * time.Second
-	fmt.Println("Getting VisualCrossing forecast")
 	body, err := v.Retryer.RetryRequest(base+q.Encode(), off)
 	if err != nil {
 		return nil, err

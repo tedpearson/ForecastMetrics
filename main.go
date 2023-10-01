@@ -26,7 +26,7 @@ func main() {
 	configFile := flag.String("config", "forecastmetrics.yaml", "Config file")
 	versionFlag := flag.Bool("v", false, "Show version and exit")
 	flag.Parse()
-	fmt.Printf("ForecastMetrics %s built on %s with %s\n", version, buildDate, goVersion)
+	fmt.Printf("ForecastMetrics version %s built on %s with %s\n", version, buildDate, goVersion)
 	if *versionFlag {
 		os.Exit(0)
 	}

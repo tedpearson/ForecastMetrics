@@ -30,7 +30,6 @@ type NWS struct {
 func (n *NWS) GetForecast(lat string, lon string) (*Forecast, error) {
 	// find gridpoint
 	url := fmt.Sprintf("https://api.weather.gov/points/%s,%s", lat, lon)
-	fmt.Println("Looking up NWS location")
 
 	off := backoff.NewExponentialBackOff()
 	off.MaxElapsedTime = 22 * time.Second
@@ -46,7 +45,6 @@ func (n *NWS) GetForecast(lat string, lon string) (*Forecast, error) {
 	}
 	gridpointUrl := jsonResponse["properties"].(map[string]interface{})["forecastGridData"].(string)
 	// okay we have a gridpoint url. get it and turn it into an object and do fun things with it
-	fmt.Println("Getting NWS forecast")
 	body2, err := n.Retryer.RetryRequest(gridpointUrl, off)
 	if err != nil {
 		return nil, err
@@ -212,7 +210,7 @@ func durationStrToHours(dateString string) ([]time.Time, error) {
 // cleanup closes an io.Closer, printing any error that occurs.
 func cleanup(closer io.Closer) {
 	if err := closer.Close(); err != nil {
-		fmt.Printf("error closing response body: %s", err)
+		fmt.Printf("error closing response body: %s\n", err)
 	}
 }
 
