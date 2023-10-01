@@ -53,10 +53,15 @@ func main() {
 	}
 	scheduler.Start()
 	dispatcher := NewDispatcher(forecasters, configService, scheduler, config.AdHocCacheEntries)
+	promConverter := PromConverter{
+		ForecastMeasurementName:  config.ForecastMeasurementName,
+		AstronomyMeasurementName: config.AstronomyMeasurementName,
+	}
 	server := Server{
 		LocationService: locationService,
 		Dispatcher:      dispatcher,
 		ConfigService:   configService,
+		PromConverter:   promConverter,
 		AuthToken:       config.InfluxDB.AuthToken,
 		ProxyUrl:        config.ProxyUrl,
 	}
@@ -91,8 +96,7 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 
 // todo
 //   improve logging
-//   consider caching situation (http, dispatcher)
 //  x deployment stuff
 //   make influx forwarded token and our required auth token allowed to be different
 //   update readme
-//  x configure proxy url
+//  x increment version

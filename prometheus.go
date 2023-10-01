@@ -39,10 +39,15 @@ type PromResponse struct {
 	} `json:"data"`
 }
 
+type PromConverter struct {
+	ForecastMeasurementName  string
+	AstronomyMeasurementName string
+}
+
 // ConvertToTimeSeries converts a source.Forecast to a PromResponse which can be
 // marshalled to json. It gets the closest corresponding real point in the last hour
 // before the timestamp, otherwise that timestamp is dropped.
-func ConvertToTimeSeries(forecast source.Forecast, params Params) PromResponse {
+func (pc PromConverter) ConvertToTimeSeries(forecast source.Forecast, params Params) PromResponse {
 	pr := PromResponse{
 		Status: "success",
 		Data: struct {
@@ -52,7 +57,7 @@ func ConvertToTimeSeries(forecast source.Forecast, params Params) PromResponse {
 			ResultType: "matrix",
 		},
 	}
-	points := GetMetric(forecast, params.Metric)
+	points := pc.GetMetric(forecast, params.Metric)
 	// get timestamps
 	// for each timestamp, find equal point or if any point came before it by no more than 1 hour
 	// if not, discard timestamp
@@ -86,10 +91,10 @@ func ConvertToTimeSeries(forecast source.Forecast, params Params) PromResponse {
 
 // GetMetric fetches a single field from each forecast point in the format
 // that prometheus uses for output.
-func GetMetric(forecast source.Forecast, metric string) []Metric {
+func (pc PromConverter) GetMetric(forecast source.Forecast, metric string) []Metric {
 	parts := strings.SplitN(metric, "_", 2)
 	name := strcase.ToCamel(parts[1])
-	if parts[0] == "astronomy" {
+	if parts[0] == pc.AstronomyMeasurementName {
 		points := make([]Metric, len(forecast.AstroEvents))
 		for i, record := range forecast.AstroEvents {
 			field := reflect.ValueOf(record).FieldByName(name)
@@ -102,7 +107,7 @@ func GetMetric(forecast source.Forecast, metric string) []Metric {
 			}
 		}
 		return points
-	} else if parts[0] == "forecast2" {
+	} else if parts[0] == pc.ForecastMeasurementName {
 		points := make([]Metric, len(forecast.WeatherRecords))
 		for i, record := range forecast.WeatherRecords {
 			field := reflect.ValueOf(record).FieldByName(name)

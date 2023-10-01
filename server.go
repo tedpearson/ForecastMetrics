@@ -22,6 +22,7 @@ type Server struct {
 	LocationService LocationService
 	Dispatcher      *Dispatcher
 	ConfigService   ConfigService
+	PromConverter   PromConverter
 	AuthToken       string
 	ProxyUrl        string
 }
@@ -78,7 +79,7 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// convert to prometheus response.
-	promResponse := ConvertToTimeSeries(*forecast, *params)
+	promResponse := s.PromConverter.ConvertToTimeSeries(*forecast, *params)
 	// send prom response as json to client
 	resp.Header().Add("content-type", "application/json")
 	respJson, err := json.Marshal(promResponse)
