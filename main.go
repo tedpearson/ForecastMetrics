@@ -22,9 +22,6 @@ var (
 )
 
 func main() {
-	// separate out metric updating
-	// separate out forecast request processing
-
 	// parse flags
 	configFile := flag.String("config", "forecastmetrics.yaml", "Config file")
 	versionFlag := flag.Bool("v", false, "Show version and exit")
@@ -33,21 +30,14 @@ func main() {
 	if *versionFlag {
 		os.Exit(0)
 	}
-	// parse config
 	config := mustParseConfig(*configFile)
-	// create name processor
 	locationService := LocationService{BingToken: config.BingToken}
-
-	// ✅create config service
-	//   ✅needs config
 	configService := ConfigService{
 		Config:     config,
 		ConfigFile: *configFile,
 		lock:       &sync.Mutex{},
 	}
-	// ✅create Forecasters
 	forecasters := MakeForecasters(config.Sources.Enabled, config.HttpCacheDir, config.Sources.VisualCrossing.Key)
-	// ✅create metric updater service
 	c := influxdb2.NewClient(config.InfluxDB.Host, config.InfluxDB.AuthToken)
 	writeApi := c.WriteAPIBlocking(config.InfluxDB.Org, config.InfluxDB.Bucket)
 	metricUpdater := MetricUpdater{
@@ -56,26 +46,13 @@ func main() {
 		weatherMeasurement: config.Forecast.MeasurementName,
 		astroMeasurement:   config.Astronomy.MeasurementName,
 	}
-	// ✅create scheduled forecast updater
-	//   ✅needs config service
-	//   ✅needs metric updater service
-	//   ✅needs forecast request processor
 	scheduler := Scheduler{
 		ConfigService: configService,
 		MetricUpdater: metricUpdater,
 		Forecasters:   forecasters,
 	}
 	scheduler.Start()
-	// create forecast dispatcher
-	//   ✅creates cache
-	//   ✅needs forecasters
-	//   needs metric updater service
-	//   ✅needs config service
 	dispatcher := NewDispatcher(forecasters, configService, scheduler, config.AdHocCacheEntries)
-	// ✅create http handler
-	//   creates prometheus converter
-	//   ✅needs name processor
-	//   ✅needs forecast dispatcher
 	server := Server{
 		LocationService: locationService,
 		Dispatcher:      dispatcher,
@@ -85,10 +62,11 @@ func main() {
 	server.Start(config.ServerPort)
 }
 
+// MakeForecasters creates the forecasters with an exponential backoff retrying http client.
+// Only enabled forecasters are returned.
 func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string]source.Forecaster {
 	// create retryer
 	client := httpcache.NewTransport(diskcache.New(cacheDir)).Client()
-	//client.Timeout = 2 * time.Second
 	retryer := myhttp.Retryer{
 		Client: client,
 	}
@@ -111,11 +89,9 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 }
 
 // todo
-//  x documentation
 //   improve logging
 //   consider caching situation (http, dispatcher)
-//  x rename ForecastersV2 to Forecasters
 //  x deployment stuff
-//   read all code and improve things like err handling.
 //   make influx forwarded token and our required auth token allowed to be different
 //   update readme
+//  x configure proxy url

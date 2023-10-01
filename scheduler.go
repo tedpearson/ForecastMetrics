@@ -10,19 +10,19 @@ import (
 	"github.com/tedpearson/ForecastMetrics/v3/source"
 )
 
+// Scheduler runs regular exports of forecast metrics to the database.
 type Scheduler struct {
 	ConfigService ConfigService
 	MetricUpdater MetricUpdater
 	Forecasters   map[string]source.Forecaster
 }
 
-// runs a forecast update for all configured locations/sources every hour
-// gets latest configuration each time
-
+// Start starts the goroutine to run regular exports.
 func (s Scheduler) Start() {
 	go s.run()
 }
 
+// run loops and calls updateForecasts at the top of each hour.
 func (s Scheduler) run() {
 	firstRun := time.Now().Truncate(time.Hour)
 	for _ = range kronika.Every(context.Background(), firstRun, time.Hour) {
@@ -30,6 +30,7 @@ func (s Scheduler) run() {
 	}
 }
 
+// updateForecasts calls UpdateForecast for every currently exported location.
 func (s Scheduler) updateForecasts() {
 	// get latest config from config svc
 	locations := s.ConfigService.GetLocations()
@@ -39,6 +40,7 @@ func (s Scheduler) updateForecasts() {
 	}
 }
 
+// UpdateForecast gets the forecast and writes the metrics to the database for every enabled Forecaster.
 func (s Scheduler) UpdateForecast(location Location) {
 	for src, forecaster := range s.Forecasters {
 		forecast, err := forecaster.GetForecast(location.Latitude, location.Longitude)
@@ -49,8 +51,3 @@ func (s Scheduler) UpdateForecast(location Location) {
 		s.MetricUpdater.WriteMetrics(*forecast, location.Name, src)
 	}
 }
-
-// create scheduled forecast updater
-//   needs config service
-//   needs metric updater service
-//   needs forecast request processor

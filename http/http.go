@@ -9,10 +9,13 @@ import (
 	"github.com/cenkalti/backoff/v3"
 )
 
+// Retryer retries an http GET request with exponential backoff.
 type Retryer struct {
 	Client *http.Client
 }
 
+// RetryRequest retries a given GET request with the given exponential backoff.
+// It returns the body of the response. Callers are responsible for closing the body.
 func (r Retryer) RetryRequest(url string, off *backoff.ExponentialBackOff) (io.ReadCloser, error) {
 	var body *io.ReadCloser
 	err := backoff.Retry(r.doRequest(url, &body), off)
@@ -22,6 +25,8 @@ func (r Retryer) RetryRequest(url string, off *backoff.ExponentialBackOff) (io.R
 	return *body, nil
 }
 
+// doRequest makes the actual http request, not retrying 4xx errors, and setting the user agent.
+// It returns the body of the request.
 func (r Retryer) doRequest(url string, body **io.ReadCloser) func() error {
 	return func() error {
 		req, err := http.NewRequest("GET", url, nil)

@@ -11,6 +11,8 @@ import (
 	"github.com/tedpearson/ForecastMetrics/v3/source"
 )
 
+// Dispatcher handles ad-hoc forecast requests, allowing multiple requests for a given
+// Location simultaneously, while only running one forecast thread per location at a time.
 type Dispatcher struct {
 	cache         *cache.Cache[CacheKey, Reply]
 	forecasters   map[string]source.Forecaster
@@ -21,27 +23,33 @@ type Dispatcher struct {
 	awaiting      map[CacheKey]*[]Request
 }
 
+// CacheKey represents the key used in the request cache
 type CacheKey struct {
 	Location Location
 	Source   string
 }
 
+// Request represents a call to Dispatcher.GetForecast
 type Request struct {
 	CacheKey
 	AdHoc bool
 	Reply chan Reply
 }
 
+// Result represents a result from a Forecaster
 type Result struct {
 	CacheKey
 	Reply Reply
 }
 
+// Reply represents a reply to a call to Dispatcher.GetForecast
 type Reply struct {
 	Forecast *source.Forecast
 	Error    error
 }
 
+// NewDispatcher creates a dispatcher, creating the internal channels and cache needed for operation.
+// It also starts the dispatcher goroutine.
 func NewDispatcher(forecasters map[string]source.Forecaster, configService ConfigService, scheduler Scheduler, cacheCapacity int) *Dispatcher {
 	d := &Dispatcher{
 		cache:         cache.New(cache.AsLRU[CacheKey, Reply](lru.WithCapacity(cacheCapacity))),
@@ -57,6 +65,8 @@ func NewDispatcher(forecasters map[string]source.Forecaster, configService Confi
 	return d
 }
 
+// runLoop is where forecast requests and replies are handled so that only one forecast per
+// Location is running at once.
 func (d *Dispatcher) runLoop() {
 	for {
 		select {
@@ -95,6 +105,7 @@ func (d *Dispatcher) runLoop() {
 	}
 }
 
+// forwardRequest gets the forecast from a forecaster and puts the response on the results channel for the run loop.
 func (d *Dispatcher) forwardRequest(key CacheKey) {
 	if forecaster, ok := d.forecasters[key.Source]; ok {
 		forecast, err := forecaster.GetForecast(key.Location.Latitude, key.Location.Longitude)
@@ -115,6 +126,7 @@ func (d *Dispatcher) forwardRequest(key CacheKey) {
 	}
 }
 
+// GetForecast requests a forecast, placing the request on the requests channel for the run loop.
 func (d *Dispatcher) GetForecast(location Location, source string, adHoc bool) (*source.Forecast, error) {
 	// send messages around
 	reply := make(chan Reply)
@@ -131,6 +143,8 @@ func (d *Dispatcher) GetForecast(location Location, source string, adHoc bool) (
 	return r.Forecast, r.Error
 }
 
+// addScheduledLocation populates the database with the first forecast for this location,
+// then adds the location to the config.
 func (d *Dispatcher) addScheduledLocation(location Location) {
 	d.scheduler.UpdateForecast(location)
 	d.configService.AddLocation(location)

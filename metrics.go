@@ -15,6 +15,7 @@ import (
 
 const ForecastTimeFormat = "2006-01-02:15"
 
+// WriteOptions contains information for writing a point to the database: tags and measurement name
 type WriteOptions struct {
 	ForecastSource  string
 	MeasurementName string
@@ -22,7 +23,7 @@ type WriteOptions struct {
 	ForecastTime    *string
 }
 
-// writes all metrics to VM
+// MetricUpdater provides the ability to write forecasts to the database.
 type MetricUpdater struct {
 	writeApi           api.WriteAPIBlocking
 	overwrite          bool
@@ -30,7 +31,7 @@ type MetricUpdater struct {
 	astroMeasurement   string
 }
 
-// takes forecast, location, source
+// WriteMetrics writes a forecast to the database.
 func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, src string) {
 	forecastOptions := WriteOptions{
 		ForecastSource:  src,
@@ -88,6 +89,7 @@ func (m MetricUpdater) WriteMetrics(forecast source.Forecast, location string, s
 	}
 }
 
+// toPoints converts a slice of source.InfluxPointer to influx client points.
 func toPoints[IP source.InfluxPointer](ip []IP, options WriteOptions) []*write.Point {
 	points := make([]*write.Point, 0, len(ip))
 	for _, item := range ip {
@@ -102,6 +104,7 @@ func toPoints[IP source.InfluxPointer](ip []IP, options WriteOptions) []*write.P
 	return points
 }
 
+// toPoint converts a struct to an influx client point.
 func toPoint(t time.Time, i interface{}, options WriteOptions) *write.Point {
 	tags := map[string]string{
 		"source":   options.ForecastSource,

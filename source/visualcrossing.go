@@ -13,11 +13,14 @@ import (
 	"github.com/tedpearson/ForecastMetrics/v3/internal/convert"
 )
 
+// VisualCrossing provides weather forecasts from https://www.visualcrossing.com
+// VisualCrossing supports astronomy forecasts.
 type VisualCrossing struct {
 	Retryer http.Retryer
 	Key     string
 }
 
+// GetForecast implements Forecaster by returning the VisualCrossing weather and astronomy forecasts.
 func (v *VisualCrossing) GetForecast(lat string, lon string) (*Forecast, error) {
 	base := "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/weatherdata/forecast?"
 	q := url.Values{}
@@ -137,6 +140,7 @@ func (v *VisualCrossing) GetForecast(lat string, lon string) (*Forecast, error) 
 	}, nil
 }
 
+// feelsLike combines temp, heatIndex, and windChill into a single value.
 func feelsLike(temp *float64, heatIndex *float64, windChill *float64) *float64 {
 	if windChill != nil {
 		return windChill
@@ -147,6 +151,7 @@ func feelsLike(temp *float64, heatIndex *float64, windChill *float64) *float64 {
 	return temp
 }
 
+// calcDewpoint calculates dewpoint given the relative humidity and the temperature in Fahrenheit.
 func calcDewpoint(rh float64, tempF float64) *float64 {
 	tempC := convert.FToC(tempF)
 	dpC := (237.3 * (math.Log(rh/100) + ((17.27 * tempC) / (237.3 + tempC)))) /
@@ -155,6 +160,7 @@ func calcDewpoint(rh float64, tempF float64) *float64 {
 	return &f
 }
 
+// vcMeasurement is the json representation of a forecast point from VisualCrossing
 type vcMeasurement struct {
 	Wdir        *float64 `json:"wdir"`
 	Temp        *float64 `json:"temp"`
@@ -174,6 +180,7 @@ type vcMeasurement struct {
 	MoonPhase   *float64 `json:"moonphase"`
 }
 
+// vcForecast is the json representation of a forecast from VisualCrossing
 type vcForecast struct {
 	Location struct {
 		Values []vcMeasurement `json:"values"`

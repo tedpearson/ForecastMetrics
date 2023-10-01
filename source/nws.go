@@ -20,10 +20,13 @@ import (
 	"github.com/tedpearson/ForecastMetrics/v3/internal/convert"
 )
 
+// NWS provides weather forecasts from the National Weather Service.
+// NWS does not support astronomy forecasts.
 type NWS struct {
 	Retryer http.Retryer
 }
 
+// GetForecast implements Forecaster by returning the NWS weather forecast.
 func (n *NWS) GetForecast(lat string, lon string) (*Forecast, error) {
 	// find gridpoint
 	url := fmt.Sprintf("https://api.weather.gov/points/%s,%s", lat, lon)
@@ -65,6 +68,7 @@ func (n *NWS) GetForecast(lat string, lon string) (*Forecast, error) {
 	}, nil
 }
 
+// transformForecast converts the forecast to a format suitable for the database or prometheus metrics.
 func (n *NWS) transformForecast(forecast nwsForecast) ([]WeatherRecord, error) {
 	props := forecast.Properties
 	var table = []transformation{
@@ -154,6 +158,7 @@ func (n *NWS) transformForecast(forecast nwsForecast) ([]WeatherRecord, error) {
 	return values, nil
 }
 
+// processMeasurement runs a single transformation for a weather metric (getter + conversion + aggregation + setter)
 func processMeasurement(recordMapP *map[time.Time]WeatherRecord, t transformation) error {
 	recordMap := *recordMapP
 	for _, forecastRecord := range t.measurements.Values {
@@ -176,6 +181,8 @@ func processMeasurement(recordMapP *map[time.Time]WeatherRecord, t transformatio
 	return nil
 }
 
+// durationStrToHours converts a period in ISO-8601 format, e.g. "2006-01-02T15:04:05Z07:00/PT2H"
+// to multiple hourly time.Time points.
 func durationStrToHours(dateString string) ([]time.Time, error) {
 	// split string by slash
 	split := strings.Split(dateString, "/")
@@ -202,13 +209,15 @@ func durationStrToHours(dateString string) ([]time.Time, error) {
 	return times, nil
 }
 
+// cleanup closes an io.Closer, printing any error that occurs.
 func cleanup(closer io.Closer) {
-	// todo: better error handling
-	if closer.Close() != nil {
-		panic("Failed to cleanup")
+	if err := closer.Close(); err != nil {
+		fmt.Printf("error closing response body: %s", err)
 	}
 }
 
+// transformation represents how to get a forecast metric, convert and aggregate it,
+// and set it in a WeatherRecord.
 type transformation struct {
 	measurements nwsForecastMeasurements
 	setter       func(record *WeatherRecord, val float64)
@@ -216,6 +225,7 @@ type transformation struct {
 	aggregation  func(hours int, val float64) float64
 }
 
+// nwsForecastMeasurements is the json structure of most forecast information from NWS.
 type nwsForecastMeasurements struct {
 	Uom    string `json:"uom"`
 	Values []struct {
@@ -224,6 +234,7 @@ type nwsForecastMeasurements struct {
 	}
 }
 
+// nwsForecast is the json structure of the NWS forecast.
 type nwsForecast struct {
 	Properties struct {
 		UpdateTime                 string                  `json:"updateTime"`

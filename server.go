@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+// Server provides the promethus endpoint for ForecastMetrics.
 type Server struct {
 	LocationService LocationService
 	Dispatcher      *Dispatcher
@@ -24,6 +25,7 @@ type Server struct {
 	AuthToken       string
 }
 
+// Start starts the prometheus endpoint.
 func (s *Server) Start(port int64) {
 	http.Handle("/", s)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
@@ -32,6 +34,9 @@ func (s *Server) Start(port int64) {
 	}
 }
 
+// ServeHTTP implements http.Handler by serving prometheus metrics for specially formed
+// prometheus http requests. If a parsed location is already written to the database,
+// we proxy the prometheus request to the database.
 func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// handle auth
 	if !Auth(req.Header.Get("Authorization"), s.AuthToken) {
@@ -86,6 +91,7 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Auth checks if the authHeader passes Basic authentication with the configured credentials.
 func Auth(authHeader, authToken string) bool {
 	if token, ok := strings.CutPrefix(authHeader, "Basic "); ok {
 		b, err := base64.StdEncoding.DecodeString(token)
@@ -97,8 +103,7 @@ func Auth(authHeader, authToken string) bool {
 	return false
 }
 
-// we will only proxy if we can parse and it's a location we are tracking.
-
+// Proxy proxies the request to the database.
 func Proxy(resp http.ResponseWriter, req *http.Request, params Params) {
 	// fixme: configure url
 	u, _ := url.Parse("http://localhost:8428")
@@ -125,21 +130,7 @@ func Proxy(resp http.ResponseWriter, req *http.Request, params Params) {
 	proxy.ServeHTTP(resp, req)
 }
 
-type Params struct {
-	Start int64
-	End   int64
-	Step  int64
-	ParsedQuery
-}
-
-func (p Params) String() string {
-	return fmt.Sprintf("Metric:%s Location:%s Source:%s Adhoc:%t\n", p.Metric, p.Location.Name, p.Source, p.AdHoc)
-}
-
-// fixme: don't hard code metric names
-var queryRE = regexp.MustCompile(`(\w+)\{(.+)\}`)
-var tagRE = regexp.MustCompile(`(\w+)="([^"]+)",?`)
-
+// ParsedQuery is the information parsed and looked up from the prometheus query string
 type ParsedQuery struct {
 	Metric   string
 	Location Location
@@ -147,6 +138,23 @@ type ParsedQuery struct {
 	AdHoc    bool
 }
 
+// Params are the timestamps of the query range along with the query string information.
+type Params struct {
+	Start int64
+	End   int64
+	Step  int64
+	ParsedQuery
+}
+
+// String implements Stringer by printing the parsed prometheus query string.
+func (p Params) String() string {
+	return fmt.Sprintf("Metric:%s Location:%s Source:%s Adhoc:%t\n", p.Metric, p.Location.Name, p.Source, p.AdHoc)
+}
+
+var queryRE = regexp.MustCompile(`(\w+)\{(.+)\}`)
+var tagRE = regexp.MustCompile(`(\w+)="([^"]+)",?`)
+
+// ParseQuery parses the information in the prometheus query string.
 func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 	matches := queryRE.FindStringSubmatch(query)
 	if len(matches) == 0 {
@@ -185,6 +193,7 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 	return pq, nil
 }
 
+// ParseParams parses all of the information needed from the prometheus request.
 func (s *Server) ParseParams(req *http.Request) (*Params, error) {
 	err := req.ParseForm()
 	if err != nil {

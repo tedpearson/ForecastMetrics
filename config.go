@@ -8,12 +8,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Location is a name plus geo coordinates.
 type Location struct {
 	Name      string
 	Latitude  string
 	Longitude string
 }
 
+// InfluxConfig is the configuration for Influx/VictoriaMetrics.
 type InfluxConfig struct {
 	Host      string
 	AuthToken string `yaml:"auth_token"`
@@ -21,6 +23,7 @@ type InfluxConfig struct {
 	Bucket    string
 }
 
+// Config is the configuration for ForecastMetrics.
 type Config struct {
 	Locations []Location
 	InfluxDB  InfluxConfig `yaml:"influxdb"`
@@ -43,6 +46,7 @@ type Config struct {
 	AdHocCacheEntries int    `yaml:"ad_hoc_cache_entries"`
 }
 
+// mustParseConfig parses the config from the given config file, or panics.
 func mustParseConfig(configFile string) Config {
 	// read config
 	file, err := os.ReadFile(configFile)
@@ -57,20 +61,25 @@ func mustParseConfig(configFile string) Config {
 	return config
 }
 
+// ConfigService provides a way to update and get the latest list of locations that have regular
+// forecasts exported to the database.
 type ConfigService struct {
 	Config     Config
 	ConfigFile string
 	lock       *sync.Mutex
 }
 
+// HasLocation returns true if this Location is being regularly exported.
 func (c ConfigService) HasLocation(location Location) bool {
 	return slices.Contains(c.Config.Locations, location)
 }
 
+// GetLocations returns all actively exported locations.
 func (c ConfigService) GetLocations() []Location {
 	return c.Config.Locations
 }
 
+// AddLocation adds a new location to be regularly exported. It is saved to the config file.
 func (c ConfigService) AddLocation(location Location) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -78,6 +87,7 @@ func (c ConfigService) AddLocation(location Location) {
 	c.marshall()
 }
 
+// RemoveLocation removes a location from being regularly exported, and removes it from the config file.
 func (c ConfigService) RemoveLocation(location Location) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -89,6 +99,7 @@ func (c ConfigService) RemoveLocation(location Location) {
 	}
 }
 
+// marshall writes the current configuration to the config file.
 func (c ConfigService) marshall() {
 	bytes, err := yaml.Marshal(c.Config)
 	if err != nil {

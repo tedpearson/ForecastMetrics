@@ -15,6 +15,7 @@ import (
 
 var latLonRe = regexp.MustCompile(`(\d+\.\d+),\s*(\d+\.\d+)`)
 
+// LocationService parses strings into Location, using the Bing Maps Locations API.
 type LocationService struct {
 	BingToken string
 }
@@ -48,6 +49,9 @@ func (l LocationService) ParseLocation(s string) (*Location, error) {
 	return location, nil
 }
 
+// lookup fills out the location argument with information looked up from
+// the Bing Maps Locations API. The Name field on Location will only be populated
+// if it is an empty string.
 func (l LocationService) lookup(s string, location *Location) error {
 	q := url.Values{}
 	q.Add("q", s)

@@ -4,11 +4,13 @@ import (
 	"time"
 )
 
+// Forecast holds a weather forecast and an astronomy forecast.
 type Forecast struct {
 	WeatherRecords []WeatherRecord
 	AstroEvents    []AstroEvent
 }
 
+// WeatherRecord is a weather forecast for a single point in time.
 type WeatherRecord struct {
 	Time                     time.Time
 	Temperature              *float64
@@ -24,6 +26,7 @@ type WeatherRecord struct {
 	IceAmount                *float64
 }
 
+// AstroEvent is a forecast of sun and moon events.
 type AstroEvent struct {
 	Time   time.Time
 	SunUp  *int
@@ -32,10 +35,12 @@ type AstroEvent struct {
 	FullMoonRatio *float64
 }
 
+// InfluxPointer is either a WeatherRecord or an AstroEvent.
 type InfluxPointer interface {
 	WeatherRecord | AstroEvent
 }
 
+// Forecaster can return a forecast for a given geo coordinate.
 type Forecaster interface {
 	GetForecast(lat string, lon string) (*Forecast, error)
 }
