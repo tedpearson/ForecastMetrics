@@ -12,19 +12,8 @@ influxdb:
   # for influx 1.8/VictoriaMetrics, use "database" or "database/retention-policy"
   bucket: forecast
 
-forecast:
-  measurement_name: forecast
-
-astronomy:
-  measurement_name: astronomy
-
-sources:
-  enabled:
-    - nws
-    - visualcrossing
-  visualcrossing:
-    key: your_key_here
-
+forecast_measurement_name: forecast
+astronomy_measurement_name: astronomy
 http_cache_dir: /var/lib/forecastmetrics/cache
 # overwrite_data will write a single series of forecast data,
 # instead of a new series each time the program runs. This works
@@ -33,3 +22,11 @@ overwrite_data: false
 bing_token: your_token_here
 server_port: 8080
 ad_hoc_cache_entries: 100
+proxy_url: "http://localhost:8428"
+
+sources:
+  enabled:
+    - nws
+    - visualcrossing
+  visualcrossing:
+    key: your_key_here

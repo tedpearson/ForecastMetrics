@@ -25,25 +25,22 @@ type InfluxConfig struct {
 
 // Config is the configuration for ForecastMetrics.
 type Config struct {
-	Locations []Location
-	InfluxDB  InfluxConfig `yaml:"influxdb"`
-	Forecast  struct {
-		MeasurementName string `yaml:"measurement_name"`
-	}
-	Astronomy struct {
-		MeasurementName string `yaml:"measurement_name"`
-	}
-	Sources struct {
+	Locations                []Location
+	InfluxDB                 InfluxConfig `yaml:"influxdb"`
+	ForecastMeasurementName  string       `yaml:"forecast_measurement_name"`
+	AstronomyMeasurementName string       `yaml:"measurement_name"`
+	HttpCacheDir             string       `yaml:"http_cache_dir"`
+	OverwriteData            bool         `yaml:"overwrite_data"`
+	BingToken                string       `yaml:"bing_token"`
+	ServerPort               int64        `yaml:"server_port"`
+	AdHocCacheEntries        int          `yaml:"ad_hoc_cache_entries"`
+	ProxyUrl                 string       `yaml:"proxy_url"`
+	Sources                  struct {
 		Enabled        []string
 		VisualCrossing struct {
 			Key string
 		} `yaml:"visualcrossing"`
 	}
-	HttpCacheDir      string `yaml:"http_cache_dir"`
-	OverwriteData     bool   `yaml:"overwrite_data"`
-	BingToken         string `yaml:"bing_token"`
-	ServerPort        int64  `yaml:"server_port"`
-	AdHocCacheEntries int    `yaml:"ad_hoc_cache_entries"`
 }
 
 // mustParseConfig parses the config from the given config file, or panics.

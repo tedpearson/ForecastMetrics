@@ -23,6 +23,7 @@ type Server struct {
 	Dispatcher      *Dispatcher
 	ConfigService   ConfigService
 	AuthToken       string
+	ProxyUrl        string
 }
 
 // Start starts the prometheus endpoint.
@@ -64,7 +65,7 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if s.ConfigService.HasLocation(params.Location) {
 		// prepare body to be read by reverse proxy
 		req.Body = io.NopCloser(bytes.NewReader(body))
-		Proxy(resp, req, *params)
+		s.Proxy(resp, req, *params)
 		proxying = " (proxying)"
 		return
 	}
@@ -104,9 +105,8 @@ func Auth(authHeader, authToken string) bool {
 }
 
 // Proxy proxies the request to the database.
-func Proxy(resp http.ResponseWriter, req *http.Request, params Params) {
-	// fixme: configure url
-	u, _ := url.Parse("http://localhost:8428")
+func (s *Server) Proxy(resp http.ResponseWriter, req *http.Request, params Params) {
+	u, _ := url.Parse(s.ProxyUrl)
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
 			r.SetURL(u)
@@ -163,8 +163,8 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 	pq := &ParsedQuery{
 		Metric: matches[1],
 	}
-	if strings.Index(pq.Metric, s.ConfigService.Config.Forecast.MeasurementName) != 0 &&
-		strings.Index(pq.Metric, s.ConfigService.Config.Astronomy.MeasurementName) != 0 {
+	if strings.Index(pq.Metric, s.ConfigService.Config.ForecastMeasurementName) != 0 &&
+		strings.Index(pq.Metric, s.ConfigService.Config.AstronomyMeasurementName) != 0 {
 		return nil, fmt.Errorf("invalid metric name: %s", pq.Metric)
 	}
 

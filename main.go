@@ -43,8 +43,8 @@ func main() {
 	metricUpdater := MetricUpdater{
 		writeApi:           writeApi,
 		overwrite:          config.OverwriteData,
-		weatherMeasurement: config.Forecast.MeasurementName,
-		astroMeasurement:   config.Astronomy.MeasurementName,
+		weatherMeasurement: config.ForecastMeasurementName,
+		astroMeasurement:   config.AstronomyMeasurementName,
 	}
 	scheduler := Scheduler{
 		ConfigService: configService,
@@ -58,6 +58,7 @@ func main() {
 		Dispatcher:      dispatcher,
 		ConfigService:   configService,
 		AuthToken:       config.InfluxDB.AuthToken,
+		ProxyUrl:        config.ProxyUrl,
 	}
 	server.Start(config.ServerPort)
 }
