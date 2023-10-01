@@ -88,11 +88,11 @@ func (d *Dispatcher) runLoop() {
 			// if newly registered location, async (update metrics, update configuration)
 			awaiting := *d.awaiting[result.CacheKey]
 			delete(d.awaiting, result.CacheKey)
-			idx := slices.IndexFunc(awaiting, func(r Request) bool {
+			adhoc := slices.ContainsFunc(awaiting, func(r Request) bool {
 				return !r.AdHoc
 			})
 			// don't allow schedule updates if no name specified
-			if idx > -1 && result.Location.Name != "" {
+			if adhoc && result.Location.Name != "" {
 				go d.addScheduledLocation(result.Location)
 			}
 			// update cache (for both adhoc and registered, there might be another request before the update config finishes)
