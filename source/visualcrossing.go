@@ -14,31 +14,11 @@ import (
 )
 
 type VisualCrossing struct {
-	Retryer  http.Retryer
-	Key      string
-	forecast vcForecast
+	Retryer http.Retryer
+	Key     string
 }
 
 func (v *VisualCrossing) GetForecast(lat string, lon string) (*Forecast, error) {
-	err := v.Init(lat, lon, v.Retryer)
-	if err != nil {
-		return nil, err
-	}
-	weatherRecords, err := v.GetWeather()
-	if err != nil {
-		return nil, err
-	}
-	astroEvents, err := v.GetAstrocast()
-	if err != nil {
-		return nil, err
-	}
-	return &Forecast{
-		WeatherRecords: weatherRecords,
-		AstroEvents:    astroEvents,
-	}, nil
-}
-
-func (v *VisualCrossing) Init(lat string, lon string, retryer http.Retryer) error {
 	base := "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/weatherdata/forecast?"
 	q := url.Values{}
 	q.Add("aggregateHours", "1")
@@ -52,25 +32,20 @@ func (v *VisualCrossing) Init(lat string, lon string, retryer http.Retryer) erro
 	// note: low number of retries because we are using free tier (250 results/day)
 	off.MaxElapsedTime = 4 * time.Second
 	fmt.Println("Getting VisualCrossing forecast")
-	body, err := retryer.RetryRequest(base+q.Encode(), off)
+	body, err := v.Retryer.RetryRequest(base+q.Encode(), off)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer cleanup(body)
 
 	var forecast vcForecast
 	err = json.NewDecoder(body).Decode(&forecast)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	v.forecast = forecast
-	return nil
-}
 
-func (v *VisualCrossing) GetWeather() ([]WeatherRecord, error) {
-	var empty []WeatherRecord
-	values := make([]WeatherRecord, 0, len(v.forecast.Location.Values))
-	for _, m := range v.forecast.Location.Values {
+	weatherRecords := make([]WeatherRecord, 0, len(forecast.Location.Values))
+	for _, m := range forecast.Location.Values {
 		// note: after 7 days, the forecast data is every 3 hours
 		//       but the other 2 hours are still in the output
 		//       with null values for everything except precip/datetime/datetimeStr
@@ -80,7 +55,7 @@ func (v *VisualCrossing) GetWeather() ([]WeatherRecord, error) {
 		}
 		t, err := time.Parse(time.RFC3339, m.DatetimeStr)
 		if err != nil {
-			return empty, err
+			return nil, err
 		}
 		skyCover := convert.PercentToRatio(*m.CloudCover)
 		var precipProb *float64
@@ -101,32 +76,28 @@ func (v *VisualCrossing) GetWeather() ([]WeatherRecord, error) {
 			PrecipitationAmount:      m.Precip,
 			SnowAmount:               convert.NilToZero(m.Snow),
 		}
-		values = append(values, record)
+		weatherRecords = append(weatherRecords, record)
 	}
-	return values, nil
-}
 
-func (v *VisualCrossing) GetAstrocast() ([]AstroEvent, error) {
-	var empty []AstroEvent
 	// add 32 points for sunrise and sunset each day
-	values := make([]AstroEvent, 0, len(v.forecast.Location.Values)+32)
+	astroEvents := make([]AstroEvent, 0, len(forecast.Location.Values)+32)
 	one := 1
 	zero := 0
-	for _, m := range v.forecast.Location.Values {
+	for _, m := range forecast.Location.Values {
 		if m.Temp == nil {
 			continue
 		}
 		t, err := time.Parse(time.RFC3339, m.DatetimeStr)
 		if err != nil {
-			return empty, err
+			return nil, err
 		}
 		sunrise, err := time.Parse(time.RFC3339, *m.Sunrise)
 		if err != nil {
-			return empty, err
+			return nil, err
 		}
 		sunset, err := time.Parse(time.RFC3339, *m.Sunset)
 		if err != nil {
-			return empty, err
+			return nil, err
 		}
 		// if hour < sunrise or > sunset, 0.
 		// else 1.
@@ -134,13 +105,13 @@ func (v *VisualCrossing) GetAstrocast() ([]AstroEvent, error) {
 		if t.Before(sunrise) || t.After(sunset) {
 			sunUp = &zero
 		}
-		values = append(values, AstroEvent{
+		astroEvents = append(astroEvents, AstroEvent{
 			Time:  t,
 			SunUp: sunUp,
 		})
 		// if this is the hour before sunrise, insert sunrise
 		if sunrise.Truncate(time.Hour).Equal(t) {
-			values = append(values, AstroEvent{
+			astroEvents = append(astroEvents, AstroEvent{
 				Time:  sunrise,
 				SunUp: &one,
 			})
@@ -152,14 +123,18 @@ func (v *VisualCrossing) GetAstrocast() ([]AstroEvent, error) {
 			// 0.5 = full moon
 			// 1   = new moon again
 			moonRatio := 1 - convert.Round(2.0*math.Abs(*m.MoonPhase-0.5), 2)
-			values = append(values, AstroEvent{
+			astroEvents = append(astroEvents, AstroEvent{
 				Time:          sunset,
 				SunUp:         &zero,
 				FullMoonRatio: &moonRatio,
 			})
 		}
 	}
-	return values, nil
+
+	return &Forecast{
+		WeatherRecords: weatherRecords,
+		AstroEvents:    astroEvents,
+	}, nil
 }
 
 func feelsLike(temp *float64, heatIndex *float64, windChill *float64) *float64 {

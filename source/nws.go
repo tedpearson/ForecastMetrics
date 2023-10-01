@@ -21,67 +21,48 @@ import (
 )
 
 type NWS struct {
-	Retryer  http.Retryer
-	forecast nwsForecast
+	Retryer http.Retryer
 }
 
 func (n *NWS) GetForecast(lat string, lon string) (*Forecast, error) {
-	err := n.Init(lat, lon, n.Retryer)
-	if err != nil {
-		return nil, err
-	}
-	weatherRecords, err := n.GetWeather()
-	if err != nil {
-		return nil, err
-	}
-	return &Forecast{
-		WeatherRecords: weatherRecords,
-		AstroEvents:    nil,
-	}, nil
-}
-
-func (n *NWS) Init(lat string, lon string, retryer http.Retryer) error {
 	// find gridpoint
 	url := fmt.Sprintf("https://api.weather.gov/points/%s,%s", lat, lon)
 	fmt.Println("Looking up NWS location")
 
 	off := backoff.NewExponentialBackOff()
 	off.MaxElapsedTime = 22 * time.Second
-	body1, err := retryer.RetryRequest(url, off)
+	body1, err := n.Retryer.RetryRequest(url, off)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer cleanup(body1)
 	var jsonResponse map[string]interface{}
 	err = json.NewDecoder(body1).Decode(&jsonResponse)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	gridpointUrl := jsonResponse["properties"].(map[string]interface{})["forecastGridData"].(string)
 	// okay we have a gridpoint url. get it and turn it into an object and do fun things with it
 	fmt.Println("Getting NWS forecast")
-	body2, err := retryer.RetryRequest(gridpointUrl, off)
+	body2, err := n.Retryer.RetryRequest(gridpointUrl, off)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer cleanup(body2)
 
 	var forecast nwsForecast
 	err = json.NewDecoder(body2).Decode(&forecast)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	n.forecast = forecast
-	return nil
-}
 
-func (n *NWS) GetWeather() ([]WeatherRecord, error) {
-	var empty []WeatherRecord
-	records, err := n.transformForecast(n.forecast)
+	records, err := n.transformForecast(forecast)
 	if err != nil {
-		return empty, err
+		return nil, err
 	}
-	return records, nil
+	return &Forecast{
+		WeatherRecords: records,
+	}, nil
 }
 
 func (n *NWS) transformForecast(forecast nwsForecast) ([]WeatherRecord, error) {
