@@ -67,17 +67,17 @@ type ConfigService struct {
 }
 
 // HasLocation returns true if this Location is being regularly exported.
-func (c ConfigService) HasLocation(location Location) bool {
+func (c *ConfigService) HasLocation(location Location) bool {
 	return slices.Contains(c.Config.Locations, location)
 }
 
 // GetLocations returns all actively exported locations.
-func (c ConfigService) GetLocations() []Location {
+func (c *ConfigService) GetLocations() []Location {
 	return c.Config.Locations
 }
 
 // AddLocation adds a new location to be regularly exported. It is saved to the config file.
-func (c ConfigService) AddLocation(location Location) {
+func (c *ConfigService) AddLocation(location Location) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.Config.Locations = append(c.Config.Locations, location)
@@ -85,7 +85,7 @@ func (c ConfigService) AddLocation(location Location) {
 }
 
 // RemoveLocation removes a location from being regularly exported, and removes it from the config file.
-func (c ConfigService) RemoveLocation(location Location) {
+func (c *ConfigService) RemoveLocation(location Location) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	locs := c.Config.Locations
@@ -97,7 +97,7 @@ func (c ConfigService) RemoveLocation(location Location) {
 }
 
 // marshall writes the current configuration to the config file.
-func (c ConfigService) marshall() {
+func (c *ConfigService) marshall() {
 	bytes, err := yaml.Marshal(c.Config)
 	if err != nil {
 		panic(err)

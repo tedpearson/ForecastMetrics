@@ -32,7 +32,7 @@ func main() {
 	}
 	config := mustParseConfig(*configFile)
 	locationService := LocationService{BingToken: config.BingToken}
-	configService := ConfigService{
+	configService := &ConfigService{
 		Config:     config,
 		ConfigFile: *configFile,
 		lock:       &sync.Mutex{},

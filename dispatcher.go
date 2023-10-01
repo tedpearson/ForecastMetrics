@@ -17,7 +17,7 @@ type Dispatcher struct {
 	cache         *cache.Cache[CacheKey, Reply]
 	forecasters   map[string]source.Forecaster
 	scheduler     Scheduler
-	configService ConfigService
+	configService *ConfigService
 	requests      chan Request
 	results       chan Result
 	awaiting      map[CacheKey]*[]Request
@@ -50,7 +50,7 @@ type Reply struct {
 
 // NewDispatcher creates a dispatcher, creating the internal channels and cache needed for operation.
 // It also starts the dispatcher goroutine.
-func NewDispatcher(forecasters map[string]source.Forecaster, configService ConfigService, scheduler Scheduler, cacheCapacity int) *Dispatcher {
+func NewDispatcher(forecasters map[string]source.Forecaster, configService *ConfigService, scheduler Scheduler, cacheCapacity int) *Dispatcher {
 	d := &Dispatcher{
 		cache:         cache.New(cache.AsLRU[CacheKey, Reply](lru.WithCapacity(cacheCapacity))),
 		forecasters:   forecasters,

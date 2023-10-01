@@ -12,7 +12,7 @@ import (
 
 // Scheduler runs regular exports of forecast metrics to the database.
 type Scheduler struct {
-	ConfigService ConfigService
+	ConfigService *ConfigService
 	MetricUpdater MetricUpdater
 	Forecasters   map[string]source.Forecaster
 }

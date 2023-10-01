@@ -21,7 +21,7 @@ import (
 type Server struct {
 	LocationService LocationService
 	Dispatcher      *Dispatcher
-	ConfigService   ConfigService
+	ConfigService   *ConfigService
 	PromConverter   PromConverter
 	AuthToken       string
 	ProxyUrl        string
