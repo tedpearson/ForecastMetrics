@@ -52,12 +52,17 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// prepare body to be read by parseparams
+	// prepare body to be read by ParseForm
 	req.Body = io.NopCloser(bytes.NewReader(body))
-	params, err := s.ParseParams(req)
+	err = req.ParseForm()
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Printf("Failed to parse params: %s\n", err)
+		fmt.Printf("Failed to parse form: %s", err)
+	}
+	params, err := s.ParseParams(req.Form)
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Printf("Failed to parse params %+v: %s\n", req.Form, err)
 		return
 	}
 
@@ -193,22 +198,18 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 }
 
 // ParseParams parses all of the information needed from the prometheus request.
-func (s *Server) ParseParams(req *http.Request) (*Params, error) {
-	err := req.ParseForm()
-	if err != nil {
-		return nil, err
-	}
-	pq, err := s.ParseQuery(req.Form.Get("query"))
+func (s *Server) ParseParams(Form url.Values) (*Params, error) {
+	pq, err := s.ParseQuery(Form.Get("query"))
 	if err != nil {
 		return nil, err
 	}
 	// fixme: <rfc3339 | unix_timestamp>
 	//  error
-	start, _ := strconv.ParseInt(req.Form.Get("start"), 10, 64)
-	end, _ := strconv.ParseInt(req.Form.Get("end"), 10, 64)
+	start, _ := strconv.ParseInt(Form.Get("start"), 10, 64)
+	end, _ := strconv.ParseInt(Form.Get("end"), 10, 64)
 	// fixme: <duration | float>
 	//  error
-	step, _ := strconv.ParseInt(req.Form.Get("step"), 10, 64)
+	step, _ := strconv.ParseInt(Form.Get("step"), 10, 64)
 	return &Params{
 		Start:       start,
 		End:         end,
