@@ -91,7 +91,6 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 }
 
 // todo
-//   deployment stuff
 //   grafana dashboards
 //   make influx forwarded token and our required auth token allowed to be different
 //   update readme

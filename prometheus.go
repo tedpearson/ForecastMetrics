@@ -103,7 +103,7 @@ func (pc PromConverter) GetMetric(forecast source.Forecast, metric string) []Met
 			}
 			points[i] = Metric{
 				Timestamp: record.Time.Unix(),
-				Metric:    field.Elem().Interface().(float64),
+				Metric:    ValueToFloat(field.Elem()),
 			}
 		}
 		return points
@@ -119,10 +119,20 @@ func (pc PromConverter) GetMetric(forecast source.Forecast, metric string) []Met
 			}
 			points[i] = Metric{
 				Timestamp: record.Time.Unix(),
-				Metric:    field.Elem().Interface().(float64),
+				Metric:    ValueToFloat(field.Elem()),
 			}
 		}
 		return points
 	}
 	return nil
+}
+
+func ValueToFloat(value reflect.Value) float64 {
+	if value.CanInt() {
+		return float64(value.Int())
+	}
+	if value.CanFloat() {
+		return value.Float()
+	}
+	return 0
 }
