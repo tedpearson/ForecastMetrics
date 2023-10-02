@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"sync"
 
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
@@ -24,19 +23,16 @@ var (
 func main() {
 	// parse flags
 	configFile := flag.String("config", "forecastmetrics.yaml", "Config file")
+	locationsFile := flag.String("locations", "locations.yaml", "Locations file")
 	versionFlag := flag.Bool("v", false, "Show version and exit")
 	flag.Parse()
 	fmt.Printf("ForecastMetrics version %s built on %s with %s\n", version, buildDate, goVersion)
 	if *versionFlag {
 		os.Exit(0)
 	}
-	config := mustParseConfig(*configFile)
+	configService := NewConfigService(*configFile, *locationsFile)
+	config := configService.Config
 	locationService := LocationService{BingToken: config.BingToken}
-	configService := &ConfigService{
-		Config:     config,
-		ConfigFile: *configFile,
-		lock:       &sync.Mutex{},
-	}
 	forecasters := MakeForecasters(config.Sources.Enabled, config.HttpCacheDir, config.Sources.VisualCrossing.Key)
 	c := influxdb2.NewClient(config.InfluxDB.Host, config.InfluxDB.AuthToken)
 	writeApi := c.WriteAPIBlocking(config.InfluxDB.Org, config.InfluxDB.Bucket)
@@ -96,7 +92,8 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 
 // todo
 //   deployment stuff
-//   increment version
 //   grafana dashboards
 //   make influx forwarded token and our required auth token allowed to be different
 //   update readme
+//   allow http server functionality to be turned off if desired, by not including a port to listen on or something
+//   also allow proxy to be turned off

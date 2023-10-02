@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"slices"
 	"sync"
@@ -25,7 +26,6 @@ type InfluxConfig struct {
 
 // Config is the configuration for ForecastMetrics.
 type Config struct {
-	Locations                []Location
 	InfluxDB                 InfluxConfig `yaml:"influxdb"`
 	ForecastMeasurementName  string       `yaml:"forecast_measurement_name"`
 	AstronomyMeasurementName string       `yaml:"astronomy_measurement_name"`
@@ -43,44 +43,64 @@ type Config struct {
 	}
 }
 
-// mustParseConfig parses the config from the given config file, or panics.
-func mustParseConfig(configFile string) Config {
-	// read config
-	file, err := os.ReadFile(configFile)
-	if err != nil {
-		panic(err)
-	}
-	var config Config
-	err = yaml.Unmarshal(file, &config)
-	if err != nil {
-		panic(err)
-	}
-	return config
-}
-
 // ConfigService provides a way to update and get the latest list of locations that have regular
 // forecasts exported to the database.
 type ConfigService struct {
-	Config     Config
-	ConfigFile string
-	lock       *sync.Mutex
+	Config        Config
+	locationsFile string
+	lock          *sync.Mutex
+	locations     []Location
+}
+
+// NewConfigService initializes a ConfigService by parsing the main config and the locations files.
+// It panics if it can't read or parse the configs.
+func NewConfigService(configFile, locationsFile string) *ConfigService {
+	// read config
+	cf, err := os.ReadFile(configFile)
+	if err != nil {
+		panic(fmt.Sprintf("Error reading config file %s: %s", configFile, err))
+	}
+	var config Config
+	err = yaml.Unmarshal(cf, &config)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading config from %s: %s", configFile, err))
+	}
+	lf, err := os.ReadFile(locationsFile)
+	if err != nil {
+		panic(fmt.Sprintf("Error reading locations file %s: %s", locationsFile, err))
+	}
+	var locations []Location
+	err = yaml.Unmarshal(lf, &locations)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading locations from %s: %s", locationsFile, err))
+	}
+	return &ConfigService{
+		Config:        config,
+		locationsFile: locationsFile,
+		lock:          &sync.Mutex{},
+		locations:     locations,
+	}
 }
 
 // HasLocation returns true if this Location is being regularly exported.
 func (c *ConfigService) HasLocation(location Location) bool {
-	return slices.Contains(c.Config.Locations, location)
+	return slices.Contains(c.locations, location)
 }
 
-// GetLocations returns all actively exported locations.
+// GetLocations returns a copy of all actively exported locations.
 func (c *ConfigService) GetLocations() []Location {
-	return c.Config.Locations
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	locsCopy := make([]Location, len(c.locations))
+	copy(locsCopy, c.locations)
+	return locsCopy
 }
 
 // AddLocation adds a new location to be regularly exported. It is saved to the config file.
 func (c *ConfigService) AddLocation(location Location) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.Config.Locations = append(c.Config.Locations, location)
+	c.locations = append(c.locations, location)
 	c.marshall()
 }
 
@@ -88,22 +108,30 @@ func (c *ConfigService) AddLocation(location Location) {
 func (c *ConfigService) RemoveLocation(location Location) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	locs := c.Config.Locations
+	locs := c.locations
 	idx := slices.Index(locs, location)
 	if idx > -1 {
-		c.Config.Locations = append(locs[:idx], locs[idx+1:]...)
+		c.locations = append(locs[:idx], locs[idx+1:]...)
 		c.marshall()
 	}
 }
 
 // marshall writes the current configuration to the config file.
+// It should only be called while holding the lock.
 func (c *ConfigService) marshall() {
-	bytes, err := yaml.Marshal(c.Config)
+	f, err := os.OpenFile(c.locationsFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Error opening locations file %s: %s", c.locationsFile, err))
 	}
-	err = os.WriteFile(c.ConfigFile, bytes, 0644)
+	defer f.Close()
+	encoder := yaml.NewEncoder(f)
+	encoder.SetIndent(2)
+	err = encoder.Encode(c.locations)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Error saving locations to %s: %s", c.locationsFile, err))
+	}
+	err = encoder.Close()
+	if err != nil {
+		panic(fmt.Sprintf("Error saving locations to %s: %s", c.locationsFile, err))
 	}
 }

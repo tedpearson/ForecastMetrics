@@ -1,6 +1,7 @@
 .idea
 *.iml
 forecastmetrics.yaml
+locations.yaml
 /ForecastMetrics
 /forecastmetrics
 .DS_Store
