@@ -70,7 +70,7 @@ func (pc PromConverter) ConvertToTimeSeries(forecast source.Forecast, params Par
 				i = j
 				break
 			}
-			if p.Timestamp == ts || (p.Timestamp < ts && p.Timestamp+3600 > ts) {
+			if p.Timestamp == ts || (p.Timestamp < ts && p.Timestamp+params.Step > ts) {
 				i = j
 				v := []any{ts, fmt.Sprintf("%f", p.Metric)}
 				values = append(values, v)
@@ -95,16 +95,19 @@ func (pc PromConverter) GetMetric(forecast source.Forecast, metric string) []Met
 	parts := strings.SplitN(metric, "_", 2)
 	name := strcase.ToCamel(parts[1])
 	if parts[0] == pc.AstronomyMeasurementName {
-		points := make([]Metric, len(forecast.AstroEvents))
-		for i, record := range forecast.AstroEvents {
+		points := make([]Metric, 0, len(forecast.AstroEvents))
+		for _, record := range forecast.AstroEvents {
 			field := reflect.ValueOf(record).FieldByName(name)
 			if !field.IsValid() {
 				return nil
 			}
-			points[i] = Metric{
+			if !field.Elem().IsValid() {
+				continue
+			}
+			points = append(points, Metric{
 				Timestamp: record.Time.Unix(),
 				Metric:    ValueToFloat(field.Elem()),
-			}
+			})
 		}
 		return points
 	} else if parts[0] == pc.ForecastMeasurementName {
