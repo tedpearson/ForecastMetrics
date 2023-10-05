@@ -29,7 +29,11 @@ type Server struct {
 
 // Start starts the prometheus endpoint.
 func (s *Server) Start(port int64) {
-	http.Handle("/", s)
+	// don't 404 on other prometheus endpoints
+	http.HandleFunc("/api/v1/", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(204)
+	})
+	http.Handle("/api/v1/query_range", s)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	if err != nil {
 		panic(err)

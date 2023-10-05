@@ -92,7 +92,10 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 
 // todo
 //   grafana dashboards
+//     change from locationAdhoc/locationTxt to just location
+//     add "save" tag, which determines if it should be added to locations.
 //   make influx forwarded token and our required auth token allowed to be different
 //   update readme
 //   allow http server functionality to be turned off if desired, by not including a port to listen on or something
 //   also allow proxy to be turned off
+//   possible to implement precip sums? +probability?
