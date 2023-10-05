@@ -29,6 +29,7 @@ type MetricUpdater struct {
 	overwrite          bool
 	weatherMeasurement string
 	astroMeasurement   string
+	precipProbability  float64
 }
 
 // WriteMetrics writes a forecast to the database.

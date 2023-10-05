@@ -9,6 +9,9 @@ influxdb:
 
 forecast_measurement_name: forecast
 astronomy_measurement_name: astronomy
+# affects the synthetic forecast metric "accumulated_precip" - if the precipitation probability is greater
+# than this value, the metric's value will be incremented for this point.
+precip_probability: 0.2
 http_cache_dir: /var/lib/forecastmetrics/cache
 # overwrite_data will write a single series of forecast data,
 # instead of a new series each time the program runs. This works

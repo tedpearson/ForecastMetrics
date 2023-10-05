@@ -44,6 +44,7 @@ func main() {
 		overwrite:          config.OverwriteData,
 		weatherMeasurement: config.ForecastMeasurementName,
 		astroMeasurement:   config.AstronomyMeasurementName,
+		precipProbability:  config.PrecipProbability,
 	}
 	scheduler := Scheduler{
 		ConfigService: configService,
@@ -55,6 +56,7 @@ func main() {
 	promConverter := PromConverter{
 		ForecastMeasurementName:  config.ForecastMeasurementName,
 		AstronomyMeasurementName: config.AstronomyMeasurementName,
+		PrecipProbability:        config.PrecipProbability,
 	}
 	server := Server{
 		LocationService: locationService,
@@ -63,6 +65,11 @@ func main() {
 		PromConverter:   promConverter,
 		AuthToken:       config.InfluxDB.AuthToken,
 		ProxyUrl:        config.ProxyUrl,
+		AllowedMetricNames: []string{
+			config.ForecastMeasurementName,
+			config.AstronomyMeasurementName,
+			"accumulated_precip",
+		},
 	}
 	server.Start(config.ServerPort)
 }

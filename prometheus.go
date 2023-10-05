@@ -42,6 +42,7 @@ type PromResponse struct {
 type PromConverter struct {
 	ForecastMeasurementName  string
 	AstronomyMeasurementName string
+	PrecipProbability        float64
 }
 
 // ConvertToTimeSeries converts a source.Forecast to a PromResponse which can be
@@ -94,7 +95,22 @@ func (pc PromConverter) ConvertToTimeSeries(forecast source.Forecast, params Par
 func (pc PromConverter) GetMetric(forecast source.Forecast, metric string) []Metric {
 	parts := strings.SplitN(metric, "_", 2)
 	name := strcase.ToCamel(parts[1])
-	if parts[0] == pc.AstronomyMeasurementName {
+	if metric == "accumulated_precip" {
+		var runningSum float64
+		points := make([]Metric, len(forecast.WeatherRecords))
+		for i, record := range forecast.WeatherRecords {
+			// running sum of precip when prop > PrecipProbability
+			if record.PrecipitationProbability != nil && record.PrecipitationAmount != nil &&
+				*record.PrecipitationProbability > pc.PrecipProbability {
+				runningSum += *record.PrecipitationAmount
+			}
+			points[i] = Metric{
+				Timestamp: record.Time.Unix(),
+				Metric:    runningSum,
+			}
+		}
+		return points
+	} else if parts[0] == pc.AstronomyMeasurementName {
 		points := make([]Metric, 0, len(forecast.AstroEvents))
 		for _, record := range forecast.AstroEvents {
 			field := reflect.ValueOf(record).FieldByName(name)

@@ -12,6 +12,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -19,12 +20,13 @@ import (
 
 // Server provides the promethus endpoint for ForecastMetrics.
 type Server struct {
-	LocationService LocationService
-	Dispatcher      *Dispatcher
-	ConfigService   *ConfigService
-	PromConverter   PromConverter
-	AuthToken       string
-	ProxyUrl        string
+	LocationService    LocationService
+	Dispatcher         *Dispatcher
+	ConfigService      *ConfigService
+	PromConverter      PromConverter
+	AuthToken          string
+	ProxyUrl           string
+	AllowedMetricNames []string
 }
 
 // Start starts the prometheus endpoint.
@@ -171,11 +173,13 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 	pq := &ParsedQuery{
 		Metric: matches[1],
 	}
-	if strings.Index(pq.Metric, s.ConfigService.Config.ForecastMeasurementName) != 0 &&
-		strings.Index(pq.Metric, s.ConfigService.Config.AstronomyMeasurementName) != 0 {
+	validMetric := slices.ContainsFunc(s.AllowedMetricNames, func(str string) bool {
+		return strings.HasPrefix(pq.Metric, str)
+	})
+	if !validMetric {
 		return nil, fmt.Errorf("invalid metric name: %s", pq.Metric)
 	}
-
+	
 	tagMatches := tagRE.FindAllStringSubmatch(matches[2], -1)
 	tags := make(map[string]string)
 	for _, tagMatch := range tagMatches {

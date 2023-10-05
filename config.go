@@ -29,6 +29,7 @@ type Config struct {
 	InfluxDB                 InfluxConfig `yaml:"influxdb"`
 	ForecastMeasurementName  string       `yaml:"forecast_measurement_name"`
 	AstronomyMeasurementName string       `yaml:"astronomy_measurement_name"`
+	PrecipProbability        float64      `yaml:"precip_probability"`
 	HttpCacheDir             string       `yaml:"http_cache_dir"`
 	OverwriteData            bool         `yaml:"overwrite_data"`
 	BingToken                string       `yaml:"bing_token"`
