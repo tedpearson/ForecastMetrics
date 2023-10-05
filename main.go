@@ -32,7 +32,10 @@ func main() {
 	}
 	configService := NewConfigService(*configFile, *locationsFile)
 	config := configService.Config
-	locationService := LocationService{BingToken: config.BingToken}
+	locationService := LocationService{
+		BingToken:     config.BingToken,
+		ConfigService: configService,
+	}
 	forecasters := MakeForecasters(config.Sources.Enabled, config.HttpCacheDir, config.Sources.VisualCrossing.Key)
 	c := influxdb2.NewClient(config.InfluxDB.Host, config.InfluxDB.AuthToken)
 	writeApi := c.WriteAPIBlocking(config.InfluxDB.Org, config.InfluxDB.Bucket)
@@ -91,12 +94,8 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 }
 
 // todo
-//   grafana dashboards
-//     change from locationAdhoc/locationTxt to just location
-//     add "save" tag, which determines if it should be added to locations.
 //   make influx forwarded token and our required auth token allowed to be different
 //   update readme
 //   allow http server functionality to be turned off if desired, by not including a port to listen on or something
 //   also allow proxy to be turned off
 //   possible to implement precip sums? +probability?
-//   we may need the ability to match location to proxy by name only.

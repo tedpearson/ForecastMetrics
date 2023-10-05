@@ -17,7 +17,8 @@ var latLonRe = regexp.MustCompile(`(\d+\.\d+),\s*(\d+\.\d+)`)
 
 // LocationService parses strings into Location, using the Bing Maps Locations API.
 type LocationService struct {
-	BingToken string
+	BingToken     string
+	ConfigService *ConfigService
 }
 
 // ParseLocation turns strings into Locations
@@ -32,6 +33,10 @@ func (l LocationService) ParseLocation(s string) (*Location, error) {
 	var name string
 	if len(parts) > 1 {
 		name = parts[1]
+	}
+	// return existing proxyable location if it exists with this name
+	if got := l.ConfigService.GetLocation(name); got != nil {
+		return got, nil
 	}
 	m := latLonRe.FindStringSubmatch(loc)
 	if m != nil {

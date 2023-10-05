@@ -84,7 +84,18 @@ func NewConfigService(configFile, locationsFile string) *ConfigService {
 
 // HasLocation returns true if this Location is being regularly exported.
 func (c *ConfigService) HasLocation(location Location) bool {
-	return slices.Contains(c.locations, location)
+	return c.GetLocation(location.Name) != nil
+}
+
+// GetLocation returns a pointer to a location if one with this name exists, otherwise nil.
+func (c *ConfigService) GetLocation(name string) *Location {
+	idx := slices.IndexFunc(c.locations, func(location Location) bool {
+		return location.Name == name
+	})
+	if idx >= 0 {
+		return &c.locations[idx]
+	}
+	return nil
 }
 
 // GetLocations returns a copy of all actively exported locations.
