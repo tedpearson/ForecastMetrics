@@ -99,3 +99,4 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 //   allow http server functionality to be turned off if desired, by not including a port to listen on or something
 //   also allow proxy to be turned off
 //   possible to implement precip sums? +probability?
+//   we may need the ability to match location to proxy by name only.

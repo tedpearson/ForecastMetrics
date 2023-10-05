@@ -181,13 +181,13 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 	for _, tagMatch := range tagMatches {
 		tags[tagMatch[1]] = tagMatch[2]
 	}
-	adhoc := false
-	loc, ok := tags["locationTxt"]
+	adhoc := true
+	if save := tags["save"]; save == "true" {
+		adhoc = false
+	}
+	loc, ok := tags["location"]
 	if !ok {
-		if loc, ok = tags["locationAdhoc"]; !ok {
-			return nil, errors.New("no location tag found")
-		}
-		adhoc = true
+		return nil, errors.New("no location tag found")
 	}
 	location, err := s.LocationService.ParseLocation(loc)
 	if err != nil {
@@ -201,7 +201,7 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 	return pq, nil
 }
 
-// ParseParams parses all of the information needed from the prometheus request.
+// ParseParams parses all the information needed from the prometheus request.
 func (s *Server) ParseParams(Form url.Values) (*Params, error) {
 	pq, err := s.ParseQuery(Form.Get("query"))
 	if err != nil {
