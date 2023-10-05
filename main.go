@@ -103,6 +103,7 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 // todo
 //   make influx forwarded token and our required auth token allowed to be different
 //   update readme
+//     proxy only works for VM, turn it off by default
 //   allow http server functionality to be turned off if desired, by not including a port to listen on or something
 //   also allow proxy to be turned off
-//   possible to implement precip sums? +probability?
+//   proxy accumulated_precip to running_sum(metric+forecast_time)
