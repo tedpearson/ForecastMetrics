@@ -68,7 +68,6 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	params, err := s.ParseParams(req.Form)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Printf("Failed to parse params %+v: %s\n", req.Form, err)
 		return
 	}
 
@@ -161,8 +160,8 @@ func (p Params) String() string {
 	return fmt.Sprintf("Metric:%s Location:%s Source:%s Adhoc:%t\n", p.Metric, p.Location.Name, p.Source, p.AdHoc)
 }
 
-var queryRE = regexp.MustCompile(`(\w+)\{(.+)\}`)
-var tagRE = regexp.MustCompile(`(\w+)="([^"]+)",?`)
+var queryRE = regexp.MustCompile(`^(\w+)\{(.+)}$`)
+var tagRE = regexp.MustCompile(`^(\w+)="([^"]+)",?$`)
 
 // ParseQuery parses the information in the prometheus query string.
 func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
@@ -179,7 +178,7 @@ func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
 	if !validMetric {
 		return nil, fmt.Errorf("invalid metric name: %s", pq.Metric)
 	}
-	
+
 	tagMatches := tagRE.FindAllStringSubmatch(matches[2], -1)
 	tags := make(map[string]string)
 	for _, tagMatch := range tagMatches {
