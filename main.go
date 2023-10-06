@@ -33,8 +33,7 @@ func main() {
 	configService := NewConfigService(*configFile, *locationsFile)
 	config := configService.Config
 	locationService := LocationService{
-		BingToken:     config.BingToken,
-		ConfigService: configService,
+		BingToken: config.BingToken,
 	}
 	forecasters := MakeForecasters(config.Sources.Enabled, config.HttpCacheDir, config.Sources.VisualCrossing.Key)
 	c := influxdb2.NewClient(config.InfluxDB.Host, config.InfluxDB.AuthToken)
@@ -61,10 +60,8 @@ func main() {
 	server := Server{
 		LocationService: locationService,
 		Dispatcher:      dispatcher,
-		ConfigService:   configService,
 		PromConverter:   promConverter,
 		AuthToken:       config.InfluxDB.AuthToken,
-		ProxyUrl:        config.ProxyUrl,
 		AllowedMetricNames: []string{
 			config.ForecastMeasurementName,
 			config.AstronomyMeasurementName,
@@ -101,9 +98,5 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 }
 
 // todo
-//   make influx forwarded token and our required auth token allowed to be different
 //   update readme
-//     proxy only works for VM, turn it off by default
 //   allow http server functionality to be turned off if desired, by not including a port to listen on or something
-//   also allow proxy to be turned off
-//   proxy accumulated_precip to running_sum(metric+forecast_time)

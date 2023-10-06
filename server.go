@@ -1,31 +1,25 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"net/http/httputil"
 	_ "net/http/pprof"
 	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Server provides the promethus endpoint for ForecastMetrics.
 type Server struct {
 	LocationService    LocationService
 	Dispatcher         *Dispatcher
-	ConfigService      *ConfigService
 	PromConverter      PromConverter
 	AuthToken          string
-	ProxyUrl           string
 	AllowedMetricNames []string
 }
 
@@ -53,14 +47,7 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// get params
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		resp.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	// prepare body to be read by ParseForm
-	req.Body = io.NopCloser(bytes.NewReader(body))
-	err = req.ParseForm()
+	err := req.ParseForm()
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Printf("Failed to parse form: %s", err)
@@ -68,14 +55,6 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	params, err := s.ParseParams(req.Form)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	// check if we should proxy
-	if s.ConfigService.HasLocation(params.Location) {
-		// prepare body to be read by reverse proxy
-		req.Body = io.NopCloser(bytes.NewReader(body))
-		s.Proxy(resp, req, *params)
 		return
 	}
 
@@ -110,33 +89,6 @@ func Auth(authHeader, authToken string) bool {
 		return string(b) == authToken
 	}
 	return false
-}
-
-// Proxy proxies the request to the database.
-func (s *Server) Proxy(resp http.ResponseWriter, req *http.Request, params Params) {
-	fmt.Printf("Proxying forecast for %s from %s\n", params.Location.Name, params.Source)
-	u, _ := url.Parse(s.ProxyUrl)
-	proxy := &httputil.ReverseProxy{
-		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetURL(u)
-			// no need to parse form here as it was already parsed
-			values := r.In.Form
-			// add forecast time label to query
-			// simplify and rename location as well
-			tagFmt := `%s="%s"`
-			loc := fmt.Sprintf(tagFmt, "location", params.Location.Name)
-			src := fmt.Sprintf(tagFmt, "source", params.Source)
-			fts := time.Now().Add(-5 * time.Minute).Truncate(time.Hour).Format(ForecastTimeFormat)
-			ft := fmt.Sprintf(tagFmt, "forecast_time", fts)
-			query := fmt.Sprintf("%s{%s,%s,%s}", params.Metric, loc, src, ft)
-			//query := fmt.Sprintf()
-			values.Set("query", query)
-			body := values.Encode()
-			r.Out.ContentLength = int64(len(body))
-			r.Out.Body = io.NopCloser(strings.NewReader(body))
-		},
-	}
-	proxy.ServeHTTP(resp, req)
 }
 
 // ParsedQuery is the information parsed and looked up from the prometheus query string

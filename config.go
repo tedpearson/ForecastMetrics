@@ -35,7 +35,6 @@ type Config struct {
 	BingToken                string       `yaml:"bing_token"`
 	ServerPort               int64        `yaml:"server_port"`
 	AdHocCacheEntries        int          `yaml:"ad_hoc_cache_entries"`
-	ProxyUrl                 string       `yaml:"proxy_url"`
 	Sources                  struct {
 		Enabled        []string
 		VisualCrossing struct {
@@ -81,22 +80,6 @@ func NewConfigService(configFile, locationsFile string) *ConfigService {
 		lock:          &sync.Mutex{},
 		locations:     locations,
 	}
-}
-
-// HasLocation returns true if this Location is being regularly exported.
-func (c *ConfigService) HasLocation(location Location) bool {
-	return c.GetLocation(location.Name) != nil
-}
-
-// GetLocation returns a pointer to a location if one with this name exists, otherwise nil.
-func (c *ConfigService) GetLocation(name string) *Location {
-	idx := slices.IndexFunc(c.locations, func(location Location) bool {
-		return location.Name == name
-	})
-	if idx >= 0 {
-		return &c.locations[idx]
-	}
-	return nil
 }
 
 // GetLocations returns a copy of all actively exported locations.

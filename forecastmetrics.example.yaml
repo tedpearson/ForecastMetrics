@@ -20,7 +20,6 @@ overwrite_data: false
 bing_token: your_token_here
 server_port: 8080
 ad_hoc_cache_entries: 100
-proxy_url: "http://localhost:8428"
 
 sources:
   enabled:
