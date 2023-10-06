@@ -161,7 +161,7 @@ func (p Params) String() string {
 }
 
 var queryRE = regexp.MustCompile(`^(\w+)\{(.+)}$`)
-var tagRE = regexp.MustCompile(`^(\w+)="([^"]+)",?$`)
+var tagRE = regexp.MustCompile(`(\w+)="([^"]+)",?`)
 
 // ParseQuery parses the information in the prometheus query string.
 func (s *Server) ParseQuery(query string) (*ParsedQuery, error) {
