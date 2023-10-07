@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"slices"
 
 	"github.com/gregjones/httpcache"
@@ -51,24 +52,30 @@ func main() {
 		Forecasters:   forecasters,
 	}
 	scheduler.Start()
-	dispatcher := NewDispatcher(forecasters, configService, scheduler, config.AdHocCacheEntries)
-	promConverter := PromConverter{
-		ForecastMeasurementName:  config.ForecastMeasurementName,
-		AstronomyMeasurementName: config.AstronomyMeasurementName,
-		PrecipProbability:        config.PrecipProbability,
+	if config.ServerPort == 0 {
+		// no port specified, keep other goroutines running
+		runtime.Goexit()
+	} else {
+		// only start server if port is specified
+		dispatcher := NewDispatcher(forecasters, configService, scheduler, config.AdHocCacheEntries)
+		promConverter := PromConverter{
+			ForecastMeasurementName:  config.ForecastMeasurementName,
+			AstronomyMeasurementName: config.AstronomyMeasurementName,
+			PrecipProbability:        config.PrecipProbability,
+		}
+		server := Server{
+			LocationService: locationService,
+			Dispatcher:      dispatcher,
+			PromConverter:   promConverter,
+			AuthToken:       config.InfluxDB.AuthToken,
+			AllowedMetricNames: []string{
+				config.ForecastMeasurementName,
+				config.AstronomyMeasurementName,
+				"accumulated_precip",
+			},
+		}
+		server.Start(config.ServerPort)
 	}
-	server := Server{
-		LocationService: locationService,
-		Dispatcher:      dispatcher,
-		PromConverter:   promConverter,
-		AuthToken:       config.InfluxDB.AuthToken,
-		AllowedMetricNames: []string{
-			config.ForecastMeasurementName,
-			config.AstronomyMeasurementName,
-			"accumulated_precip",
-		},
-	}
-	server.Start(config.ServerPort)
 }
 
 // MakeForecasters creates the forecasters with an exponential backoff retrying http client.
