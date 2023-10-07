@@ -1,9 +1,7 @@
 package convert
 
 import (
-	"fmt"
 	"math"
-	"strconv"
 )
 
 func CToF(celsius float64) float64 {
@@ -44,13 +42,4 @@ func NilToZero(a *float64) *float64 {
 		return &zero
 	}
 	return a
-}
-
-func StrToF(s string, msg string) float64 {
-	v, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		fmt.Printf("Unable to parse %s value '%s'\n", msg, s)
-		v = 0
-	}
-	return v
 }

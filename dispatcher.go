@@ -56,10 +56,9 @@ func NewDispatcher(forecasters map[string]source.Forecaster, configService *Conf
 		forecasters:   forecasters,
 		scheduler:     scheduler,
 		configService: configService,
-		// todo: understand buffered channels.
-		requests: make(chan Request, 10),
-		results:  make(chan Result, 10),
-		awaiting: make(map[CacheKey]*[]Request),
+		requests:      make(chan Request, 10),
+		results:       make(chan Result, 10),
+		awaiting:      make(map[CacheKey]*[]Request),
 	}
 	go d.runLoop()
 	return d

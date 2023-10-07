@@ -162,12 +162,8 @@ func (s *Server) ParseParams(Form url.Values) (*Params, error) {
 	if err != nil {
 		return nil, err
 	}
-	// fixme: <rfc3339 | unix_timestamp>
-	//  error
 	start, _ := strconv.ParseInt(Form.Get("start"), 10, 64)
 	end, _ := strconv.ParseInt(Form.Get("end"), 10, 64)
-	// fixme: <duration | float>
-	//  error
 	step, _ := strconv.ParseInt(Form.Get("step"), 10, 64)
 	return &Params{
 		Start:       start,

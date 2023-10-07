@@ -27,7 +27,7 @@ func (v *VisualCrossing) GetForecast(lat string, lon string) (*Forecast, error) 
 	q.Add("contentType", "json")
 	q.Add("unitGroup", "us")
 	q.Add("locationMode", "single")
-	q.Add("key", v.Key) // todo
+	q.Add("key", v.Key)
 	q.Add("location", lat+","+lon)
 	q.Add("includeAstronomy", "true")
 	off := backoff.NewExponentialBackOff()

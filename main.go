@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	version   string = "development"
-	goVersion string = "unknown"
-	buildDate string = "unknown"
+	version   = "development"
+	goVersion = "unknown"
+	buildDate = "unknown"
 )
 
 func main() {
@@ -106,4 +106,3 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 
 // todo
 //   update readme
-//   allow http server functionality to be turned off if desired, by not including a port to listen on or something
