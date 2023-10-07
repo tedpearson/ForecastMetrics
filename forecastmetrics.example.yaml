@@ -14,11 +14,15 @@ astronomy_measurement_name: astronomy
 precip_probability: 0.2
 http_cache_dir: /var/lib/forecastmetrics/cache
 # overwrite_data will write a single series of forecast data,
-# instead of a new series each time the program runs. This works
+# instead of a new series each time. This works
 # with influxdb but not with VictoriaMetrics.
 overwrite_data: false
+# Bing Maps Location API token to provide location lookup for adhoc forecasts, if enabled
 bing_token: your_token_here
+# port to run http server on for adhoc forecasts
+# set to 0 to disable the http server.
 server_port: 8080
+# number of adhoc forecasts to cache
 ad_hoc_cache_entries: 100
 
 sources:
