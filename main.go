@@ -103,6 +103,3 @@ func MakeForecasters(enabled []string, cacheDir string, vcKey string) map[string
 	}
 	return forecasters
 }
-
-// todo
-//   update readme
