@@ -52,7 +52,7 @@ func main() {
 		Forecasters:   forecasters,
 	}
 	scheduler.Start()
-	if config.ServerPort == 0 {
+	if config.ServerConfig.Port == 0 {
 		// no port specified, keep other goroutines running
 		runtime.Goexit()
 	} else {

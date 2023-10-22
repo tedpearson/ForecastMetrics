@@ -40,7 +40,6 @@ type Config struct {
 	OverwriteData            bool         `yaml:"overwrite_data"`
 	BingToken                string       `yaml:"bing_token"`
 	ServerConfig             ServerConfig `yaml:"server"`
-	ServerPort               int64        `yaml:"server_port"`
 	AdHocCacheEntries        int          `yaml:"ad_hoc_cache_entries"`
 	Sources                  struct {
 		Enabled        []string
