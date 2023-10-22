@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -24,15 +25,32 @@ type Server struct {
 }
 
 // Start starts the prometheus endpoint.
-func (s *Server) Start(port int64) {
+func (s *Server) Start(config ServerConfig) {
+	server := &http.Server{
+		Addr: fmt.Sprintf(":%d", config.Port),
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS13,
+			CurvePreferences: []tls.CurveID{
+				tls.CurveP256,
+				tls.X25519,
+			},
+		},
+	}
 	// don't 404 on other prometheus endpoints
 	http.HandleFunc("/api/v1/", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(204)
 	})
 	http.Handle("/api/v1/query_range", s)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
-	if err != nil {
-		panic(err)
+	if len(config.CertFile) > 0 && len(config.KeyFile) > 0 {
+		err := server.ListenAndServeTLS(config.CertFile, config.KeyFile)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err := server.ListenAndServe()
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

@@ -24,6 +24,12 @@ type InfluxConfig struct {
 	Bucket    string
 }
 
+type ServerConfig struct {
+	Port     int64
+	CertFile string `yaml:"cert_file"`
+	KeyFile  string `yaml:"key_file"`
+}
+
 // Config is the configuration for ForecastMetrics.
 type Config struct {
 	InfluxDB                 InfluxConfig `yaml:"influxdb"`
@@ -33,6 +39,7 @@ type Config struct {
 	HttpCacheDir             string       `yaml:"http_cache_dir"`
 	OverwriteData            bool         `yaml:"overwrite_data"`
 	BingToken                string       `yaml:"bing_token"`
+	ServerConfig             ServerConfig `yaml:"server"`
 	ServerPort               int64        `yaml:"server_port"`
 	AdHocCacheEntries        int          `yaml:"ad_hoc_cache_entries"`
 	Sources                  struct {

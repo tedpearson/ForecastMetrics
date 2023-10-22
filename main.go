@@ -74,7 +74,7 @@ func main() {
 				"accumulated_precip",
 			},
 		}
-		server.Start(config.ServerPort)
+		server.Start(config.ServerConfig)
 	}
 }
 

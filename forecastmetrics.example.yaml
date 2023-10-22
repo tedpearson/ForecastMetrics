@@ -19,9 +19,14 @@ http_cache_dir: /var/lib/forecastmetrics/cache
 overwrite_data: false
 # Bing Maps Location API token to provide location lookup for adhoc forecasts, if enabled
 bing_token: your_token_here
-# port to run http server on for adhoc forecasts
-# set to 0 to disable the http server.
-server_port: 8080
+server:
+  # port to run http server on for adhoc forecasts
+  # set to 0 to disable the http server.
+  port: 8080
+  # certificate for serving TLS. Leave blank/remove to disable TLS.
+  cert_file: /path/to/cert.pem
+  # certificate private key for serving TLS. Leave blank/remove to disable TLS.
+  key_file: /path/to/cert.key
 # number of adhoc forecasts to cache
 ad_hoc_cache_entries: 100
 
