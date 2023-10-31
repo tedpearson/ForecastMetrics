@@ -73,6 +73,7 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	params, err := s.ParseParams(req.Form)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
+		resp.Write([]byte("{}"))
 		return
 	}
 
