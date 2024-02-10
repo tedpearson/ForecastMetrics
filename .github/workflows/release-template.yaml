@@ -52,7 +52,7 @@ jobs:
           VERSION=$(git describe --tags --dirty --always --long)
           DATE=$(date)
           GOVERSION=$(go version)
-          LDFLAGS="-X 'main.version=${{env.TAG_NAME}} commit $VERSION'"
+          LDFLAGS="-X 'main.version=$VERSION'"
           LDFLAGS="$LDFLAGS -X 'main.goVersion=$GOVERSION'"
           LDFLAGS="$LDFLAGS -X 'main.buildDate=$DATE'"
           env GOOS=${{matrix.GOOS}} GOARCH=${{matrix.GOARCH}} go build -ldflags "$LDFLAGS" -v -o ${{env.executable}} .
