@@ -1,6 +1,6 @@
 module github.com/tedpearson/ForecastMetrics/v3
 
-go 1.19
+go 1.21
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.3.1
