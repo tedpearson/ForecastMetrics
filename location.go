@@ -28,10 +28,12 @@ type LocationService struct {
 // city, state|name
 func (l LocationService) ParseLocation(s string) (*Location, error) {
 	parts := strings.Split(s, "|")
-	loc := parts[0]
+	loc := strings.ReplaceAll(parts[0], "\n", "")
+	loc = strings.ReplaceAll(loc, "\r", "")
 	var name string
 	if len(parts) > 1 {
-		name = parts[1]
+		name = strings.ReplaceAll(parts[1], "\n", "")
+		name = strings.ReplaceAll(name, "\r", "")
 	}
 	m := latLonRe.FindStringSubmatch(loc)
 	if m != nil {
