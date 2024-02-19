@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v3"
-	"github.com/rickb777/date/period"
+	"github.com/rickb777/period"
 
 	"github.com/tedpearson/ForecastMetrics/v3/http"
 	"github.com/tedpearson/ForecastMetrics/v3/internal/convert"
