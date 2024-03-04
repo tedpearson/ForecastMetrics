@@ -10,7 +10,7 @@ require (
 	github.com/influxdata/influxdb-client-go/v2 v2.13.0
 	github.com/rickb777/period v0.15.0
 	github.com/stephenafamo/kronika v0.0.0-20220912224312-79c8aa498e30
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/valyala/fastjson v1.6.4
 	gopkg.in/yaml.v3 v3.0.1
 )
