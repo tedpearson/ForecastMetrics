@@ -3,7 +3,7 @@ module github.com/tedpearson/ForecastMetrics/v3
 go 1.21
 
 require (
-	github.com/Code-Hex/go-generics-cache v1.3.1
+	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/cenkalti/backoff/v3 v3.2.2
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/iancoleman/strcase v0.3.0
