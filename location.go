@@ -15,7 +15,7 @@ import (
 
 var latLonRe = regexp.MustCompile(`(\d+\.\d+),\s*(\d+\.\d+)`)
 
-// LocationService parses strings into Location, using the Bing Maps Locations API.
+// LocationService parses strings into Location, using the Azure Maps Get Geocoding API.
 type LocationService struct {
 	AzureSharedKey string
 }
@@ -52,7 +52,7 @@ func (l LocationService) ParseLocation(s string) (*Location, error) {
 }
 
 // lookup fills out the location argument with information looked up from
-// the Bing Maps Locations API. The Name field on Location will only be populated
+// the Azure Maps Get Geocoding API. The Name field on Location will only be populated
 // if it is an empty string.
 func (l LocationService) lookup(s string, location *Location) error {
 	q := url.Values{}

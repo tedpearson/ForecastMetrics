@@ -17,7 +17,7 @@ http_cache_dir: /var/lib/forecastmetrics/cache
 # instead of a new series each time. This works
 # with influxdb but not with VictoriaMetrics.
 overwrite_data: false
-# Bing Maps Location API token to provide location lookup for adhoc forecasts, if enabled
+# Azure Maps Shared Key to provide location lookup for adhoc forecasts, if enabled
 azure_shared_key: your_token_here
 server:
   # port to run http server on for adhoc forecasts

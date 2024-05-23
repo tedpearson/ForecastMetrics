@@ -60,7 +60,7 @@ criteria (7 day hourly forecast, reasonably priced or free)
   - add your own key for Visualcrossing, if desired
   - server config for ad-hoc forecasts:
     - Set the port the server should listen on (set to `0` to disable the server)
-    - Insert your own [Bing Maps Location API token][bing-token]
+    - Insert your own [Azure Maps Shared Key][azure-key] (requires Azure Maps account. There is a free tier.)
 
 ### Ad-hoc Forecasts Setup
 
@@ -124,5 +124,5 @@ large amounts for my personal forecast dashboard is just silly.
 [release]: https://github.com/tedpearson/ForecastMetrics/releases
 [config-example]: https://github.com/tedpearson/ForecastMetrics/blob/master/config/forecastmetrics.example.yaml
 [install-go]: https://golang.org/dl/
-[bing-token]: https://learn.microsoft.com/en-us/bingmaps/getting-started/bing-maps-dev-center-help/getting-a-bing-maps-key
+[azure-key]: https://learn.microsoft.com/en-us/azure/azure-maps/azure-maps-authentication
 [ambientweatherexporter]: https://github.com/tedpearson/ambientweatherexporter
