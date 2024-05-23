@@ -38,7 +38,7 @@ type Config struct {
 	PrecipProbability        float64      `yaml:"precip_probability"`
 	HttpCacheDir             string       `yaml:"http_cache_dir"`
 	OverwriteData            bool         `yaml:"overwrite_data"`
-	BingToken                string       `yaml:"bing_token"`
+	AzureSharedKey           string       `yaml:"azure_shared_key"`
 	ServerConfig             ServerConfig `yaml:"server"`
 	AdHocCacheEntries        int          `yaml:"ad_hoc_cache_entries"`
 	Sources                  struct {

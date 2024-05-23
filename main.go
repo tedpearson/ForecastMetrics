@@ -34,7 +34,7 @@ func main() {
 	configService := NewConfigService(*configFile, *locationsFile)
 	config := configService.Config
 	locationService := LocationService{
-		BingToken: config.BingToken,
+		AzureSharedKey: config.AzureSharedKey,
 	}
 	forecasters := MakeForecasters(config.Sources.Enabled, config.HttpCacheDir, config.Sources.VisualCrossing.Key)
 	c := influxdb2.NewClient(config.InfluxDB.Host, config.InfluxDB.AuthToken)

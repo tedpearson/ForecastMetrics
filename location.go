@@ -17,7 +17,7 @@ var latLonRe = regexp.MustCompile(`(\d+\.\d+),\s*(\d+\.\d+)`)
 
 // LocationService parses strings into Location, using the Bing Maps Locations API.
 type LocationService struct {
-	BingToken string
+	AzureSharedKey string
 }
 
 // ParseLocation turns strings into Locations
@@ -56,9 +56,10 @@ func (l LocationService) ParseLocation(s string) (*Location, error) {
 // if it is an empty string.
 func (l LocationService) lookup(s string, location *Location) error {
 	q := url.Values{}
-	q.Add("q", s)
-	q.Add("key", l.BingToken)
-	resp, err := http.Get("http://dev.virtualearth.net/REST/v1/Locations?" + q.Encode())
+	q.Add("api-version", "2023-06-01")
+	q.Add("query", s)
+	q.Add("subscription-key", l.AzureSharedKey)
+	resp, err := http.Get("https://atlas.microsoft.com/geocode?" + q.Encode())
 	if err != nil {
 		fmt.Printf("Failed to look up %s\n", s)
 		return err
@@ -74,23 +75,23 @@ func (l LocationService) lookup(s string, location *Location) error {
 		fmt.Printf("Failed to parse json %s\n", buf.String())
 		return err
 	}
-	record := val.Get("resourceSets", "0", "resources", "0")
-	coords := record.GetArray("point", "coordinates")
+	record := val.Get("features", "0")
+	coords := record.GetArray("geometry", "coordinates")
 	if record == nil || coords == nil {
 		return fmt.Errorf("failed to look up location '%s'", s)
 	}
-	latF, err := coords[0].Float64()
+	latF, err := coords[1].Float64()
 	if err != nil {
 		fmt.Printf("Failed to get coordinates from json %s\n", buf.String())
 		return err
 	}
-	lonF, err := coords[1].Float64()
+	lonF, err := coords[0].Float64()
 	if err != nil {
 		fmt.Printf("Failed to get coordinates from json %s\n", buf.String())
 		return err
 	}
 	if location.Name == "" {
-		name := record.GetStringBytes("name")
+		name := record.GetStringBytes("properties", "address", "formattedAddress")
 		if name == nil {
 			fmt.Printf("Failed to get name from json %s\n", buf.String())
 			return err
