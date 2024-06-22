@@ -37,7 +37,7 @@ type PromResponse struct {
 	Data   struct {
 		ResultType string       `json:"resultType"`
 		Result     []PromResult `json:"result"`
-	} `json:"data"`
+	} `json:"data,omitempty"`
 }
 
 type PromConverter struct {
