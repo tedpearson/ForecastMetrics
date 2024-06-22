@@ -75,6 +75,11 @@ func (l LocationService) lookup(s string, location *Location) error {
 		fmt.Printf("Failed to parse json %s\n", buf.String())
 		return err
 	}
+	errorCode := val.GetStringBytes("error", "code")
+	errorMsg := val.GetStringBytes("error", "message")
+	if errorMsg != nil {
+		return fmt.Errorf("failed to look up location '%s', error: %s, %s", s, string(errorCode), string(errorMsg))
+	}
 	record := val.Get("features", "0")
 	coords := record.GetArray("geometry", "coordinates")
 	if record == nil || coords == nil {
