@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"slices"
 
+	cache "github.com/Code-Hex/go-generics-cache"
+	"github.com/Code-Hex/go-generics-cache/policy/lru"
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -35,6 +37,7 @@ func main() {
 	config := configService.Config
 	locationService := LocationService{
 		AzureSharedKey: config.AzureSharedKey,
+		cache:          cache.New(cache.AsLRU[string, Location](lru.WithCapacity(200))),
 	}
 	forecasters := MakeForecasters(config.Sources.Enabled, config.HttpCacheDir, config.Sources.VisualCrossing.Key)
 	c := influxdb2.NewClient(config.InfluxDB.Host, config.InfluxDB.AuthToken)

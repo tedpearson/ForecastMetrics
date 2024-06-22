@@ -10,23 +10,40 @@ import (
 	"strconv"
 	"strings"
 
+	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/valyala/fastjson"
 )
 
 var latLonRe = regexp.MustCompile(`(\d+\.\d+),\s*(\d+\.\d+)`)
 
+type LocationResult struct {
+	Location *Location
+	Error    error
+}
+
 // LocationService parses strings into Location, using the Azure Maps Get Geocoding API.
 type LocationService struct {
 	AzureSharedKey string
+	cache          *cache.Cache[string, LocationResult]
 }
 
-// ParseLocation turns strings into Locations
+// ParseLocation gets the cached location or delegates to parseLocation
+func (l LocationService) ParseLocation(s string) (*Location, error) {
+	if item, ok := l.cache.Get(s); ok {
+		return item.Location, item.Error
+	}
+	loc, err := l.parseLocation(s)
+	l.cache.Set(s, LocationResult{loc, err})
+	return loc, err
+}
+
+// parseLocation turns strings into Locations
 // allowed formats:
 // lat,lon (name is blank)
 // lat,lon|name
 // city, state
 // city, state|name
-func (l LocationService) ParseLocation(s string) (*Location, error) {
+func (l LocationService) parseLocation(s string) (*Location, error) {
 	parts := strings.Split(s, "|")
 	loc := strings.ReplaceAll(parts[0], "\n", "")
 	loc = strings.ReplaceAll(loc, "\r", "")
