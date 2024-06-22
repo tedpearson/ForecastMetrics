@@ -67,13 +67,17 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// get params
 	err := req.ParseForm()
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Printf("Failed to parse form: %s", err)
+		resp.WriteHeader(http.StatusBadRequest)
 	}
 	params, err := s.ParseParams(req.Form)
 	if err != nil {
+		fmt.Printf("Failed to parse params: %s", err)
 		resp.WriteHeader(http.StatusBadRequest)
-		resp.Write([]byte("{}"))
+		_, err = resp.Write([]byte("{}"))
+		if err != nil {
+			fmt.Printf("Error writing response to client: %+v\n", err)
+		}
 		return
 	}
 
