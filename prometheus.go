@@ -33,6 +33,7 @@ type PromResult struct {
 
 type PromResponse struct {
 	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
 	Data   struct {
 		ResultType string       `json:"resultType"`
 		Result     []PromResult `json:"result"`

@@ -69,15 +69,14 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		fmt.Printf("Failed to parse form: %s", err)
 		resp.WriteHeader(http.StatusBadRequest)
+		errorJson(err, resp)
+		return
 	}
 	params, err := s.ParseParams(req.Form)
 	if err != nil {
-		fmt.Printf("Failed to parse params: %s", err)
+		fmt.Printf("Failed to parse params: %s\n", err)
 		resp.WriteHeader(http.StatusBadRequest)
-		_, err = resp.Write([]byte("{}"))
-		if err != nil {
-			fmt.Printf("Error writing response to client: %+v\n", err)
-		}
+		errorJson(err, resp)
 		return
 	}
 
@@ -85,6 +84,7 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		fmt.Printf("Error getting forecast: %+v\n", err)
 		resp.WriteHeader(http.StatusInternalServerError)
+		errorJson(err, resp)
 		return
 	}
 	// convert to prometheus response.
@@ -94,6 +94,22 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	respJson, err := json.Marshal(promResponse)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
+		errorJson(err, resp)
+		return
+	}
+	_, err = resp.Write(respJson)
+	if err != nil {
+		fmt.Printf("Error writing response to client: %+v\n", err)
+	}
+}
+
+func errorJson(err error, resp http.ResponseWriter) {
+	respJson, err := json.Marshal(PromResponse{
+		Status: "error",
+		Error:  err.Error(),
+	})
+	if err != nil {
+		fmt.Printf("Error marshalling json: %s\n", err)
 		return
 	}
 	_, err = resp.Write(respJson)
