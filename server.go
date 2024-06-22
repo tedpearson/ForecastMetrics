@@ -74,13 +74,9 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 	params, err := s.ParseParams(req.Form)
 	if err != nil {
-		fmt.Printf("Failed to parse params: %s: %+v\n", err, req.Form)
+		fmt.Printf("Failed to parse params: %s\n", err)
 		resp.WriteHeader(http.StatusBadRequest)
-		_, err = resp.Write([]byte("{}"))
-		if err != nil {
-			fmt.Printf("Error writing response to client: %+v\n", err)
-		}
-		//errorJson(err, resp)
+		errorJson(err, resp)
 		return
 	}
 
