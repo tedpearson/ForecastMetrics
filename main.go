@@ -37,7 +37,7 @@ func main() {
 	config := configService.Config
 	locationService := LocationService{
 		AzureSharedKey: config.AzureSharedKey,
-		cache:          cache.New(cache.AsLRU[string, Location](lru.WithCapacity(200))),
+		cache:          cache.New(cache.AsLRU[string, LocationResult](lru.WithCapacity(200))),
 	}
 	forecasters := MakeForecasters(config.Sources.Enabled, config.HttpCacheDir, config.Sources.VisualCrossing.Key)
 	c := influxdb2.NewClient(config.InfluxDB.Host, config.InfluxDB.AuthToken)
