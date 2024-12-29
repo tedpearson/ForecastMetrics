@@ -24,7 +24,6 @@ func (s Scheduler) Start() {
 
 // run loops and calls updateForecasts at the top of each hour.
 func (s Scheduler) run() {
-	s.updateForecasts()
 	firstRun := time.Now().Truncate(time.Hour)
 	for range kronika.Every(context.Background(), firstRun, time.Hour) {
 		s.updateForecasts()
