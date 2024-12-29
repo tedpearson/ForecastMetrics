@@ -1,6 +1,6 @@
 module github.com/tedpearson/ForecastMetrics/v3
 
-go 1.22.3
+go 1.23.4
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.5.1
@@ -22,12 +22,14 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/govalues/decimal v0.1.34 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210922203350-b1ad95c89adf // indirect
-	github.com/kr/pretty v0.3.0 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rickb777/plural v1.4.2 // indirect
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
