@@ -8,7 +8,7 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/iancoleman/strcase v0.3.0
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0
-	github.com/rickb777/period v1.0.7
+	github.com/rickb777/period v1.0.8
 	github.com/stephenafamo/kronika v0.0.0-20220912224312-79c8aa498e30
 	github.com/stretchr/testify v1.10.0
 	github.com/valyala/fastjson v1.6.4
@@ -23,7 +23,6 @@ require (
 	github.com/govalues/decimal v0.1.34 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210922203350-b1ad95c89adf // indirect
 	github.com/kr/pretty v0.3.1 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
