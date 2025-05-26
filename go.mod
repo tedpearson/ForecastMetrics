@@ -8,7 +8,7 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/iancoleman/strcase v0.3.0
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0
-	github.com/rickb777/period v1.0.14
+	github.com/rickb777/period v1.0.15
 	github.com/stephenafamo/kronika v0.0.0-20220912224312-79c8aa498e30
 	github.com/stretchr/testify v1.10.0
 	github.com/valyala/fastjson v1.6.4
