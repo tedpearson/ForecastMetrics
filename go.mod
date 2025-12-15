@@ -11,7 +11,7 @@ require (
 	github.com/rickb777/period v1.0.21
 	github.com/stephenafamo/kronika v0.0.0-20220912224312-79c8aa498e30
 	github.com/stretchr/testify v1.11.1
-	github.com/valyala/fastjson v1.6.4
+	github.com/valyala/fastjson v1.6.7
 	gopkg.in/yaml.v3 v3.0.1
 )
 
