@@ -1,6 +1,6 @@
 module github.com/tedpearson/ForecastMetrics/v3
 
-go 1.24.1
+go 1.25.0
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.5.1
@@ -8,7 +8,7 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/iancoleman/strcase v0.3.0
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0
-	github.com/rickb777/period v1.0.22
+	github.com/rickb777/period v1.0.24
 	github.com/stephenafamo/kronika v0.0.0-20220912224312-79c8aa498e30
 	github.com/stretchr/testify v1.11.1
 	github.com/valyala/fastjson v1.6.7
@@ -26,7 +26,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rickb777/plural v1.4.7 // indirect
+	github.com/rickb777/plural v1.4.8 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/net v0.38.0 // indirect
