@@ -10,7 +10,7 @@ require (
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0
 	github.com/rickb777/period v1.0.30
 	github.com/stephenafamo/kronika v0.0.0-20220912224312-79c8aa498e30
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	github.com/valyala/fastjson v1.6.10
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -26,6 +26,7 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/rickb777/plural/v2 v2.1.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
