@@ -59,7 +59,8 @@ criteria (7 day hourly forecast, reasonably priced or free)
   - which weather sources to enable
   - add your own key for Visualcrossing, if desired
   - server config for ad-hoc forecasts:
-    - Set the port the server should listen on (set to `0` to disable the server)
+    - Set the port the server should listen on (set to `0` to disable the server), or a unix
+      `socket` path to listen on behind a reverse proxy (no auth check on the socket)
     - Insert your own [Azure Maps Shared Key][azure-key] (requires Azure Maps account. There is a free tier.)
 
 ### Ad-hoc Forecasts Setup

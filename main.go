@@ -55,11 +55,15 @@ func main() {
 		Forecasters:   forecasters,
 	}
 	scheduler.Start()
-	if config.ServerConfig.Port == 0 {
-		// no port specified, keep other goroutines running
+	if config.ServerConfig.Port != 0 && config.ServerConfig.Socket != "" {
+		fmt.Println("server: set port or socket, not both")
+		os.Exit(1)
+	}
+	if config.ServerConfig.Port == 0 && config.ServerConfig.Socket == "" {
+		// no port or socket specified, keep other goroutines running
 		runtime.Goexit()
 	} else {
-		// only start server if port is specified
+		// only start server if port or socket is specified
 		dispatcher := NewDispatcher(forecasters, configService, scheduler, config.AdHocCacheEntries)
 		promConverter := PromConverter{
 			ForecastMeasurementName:  config.ForecastMeasurementName,
@@ -71,6 +75,8 @@ func main() {
 			Dispatcher:      dispatcher,
 			PromConverter:   promConverter,
 			AuthToken:       config.InfluxDB.AuthToken,
+			// on a unix socket, its file permissions decide who can connect
+			RequireAuth: config.ServerConfig.Socket == "",
 			AllowedMetricNames: []string{
 				config.ForecastMeasurementName,
 				config.AstronomyMeasurementName,

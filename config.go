@@ -26,6 +26,7 @@ type InfluxConfig struct {
 
 type ServerConfig struct {
 	Port     int64
+	Socket   string
 	CertFile string `yaml:"cert_file"`
 	KeyFile  string `yaml:"key_file"`
 }

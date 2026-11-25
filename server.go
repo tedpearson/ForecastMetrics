@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
+	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -21,6 +24,7 @@ type Server struct {
 	Dispatcher         *Dispatcher
 	PromConverter      PromConverter
 	AuthToken          string
+	RequireAuth        bool
 	AllowedMetricNames []string
 }
 
@@ -41,7 +45,16 @@ func (s *Server) Start(config ServerConfig) {
 		writer.WriteHeader(204)
 	})
 	http.Handle("/api/v1/query_range", s)
-	if len(config.CertFile) > 0 && len(config.KeyFile) > 0 {
+	if config.Socket != "" {
+		listener, err := listenUnix(config.Socket)
+		if err != nil {
+			panic(err)
+		}
+		err = server.Serve(listener)
+		if err != nil {
+			panic(err)
+		}
+	} else if len(config.CertFile) > 0 && len(config.KeyFile) > 0 {
 		err := server.ListenAndServeTLS(config.CertFile, config.KeyFile)
 		if err != nil {
 			panic(err)
@@ -54,12 +67,26 @@ func (s *Server) Start(config ServerConfig) {
 	}
 }
 
+// listenUnix listens on a unix socket at path, replacing a socket left by an earlier run.
+// The socket's permissions follow the process umask.
+func listenUnix(path string) (net.Listener, error) {
+	if info, err := os.Lstat(path); err == nil {
+		if info.Mode().Type() != fs.ModeSocket {
+			return nil, fmt.Errorf("%s exists and is not a socket", path)
+		}
+		if err := os.Remove(path); err != nil {
+			return nil, err
+		}
+	}
+	return net.Listen("unix", path)
+}
+
 // ServeHTTP implements http.Handler by serving prometheus metrics for specially formed
 // prometheus http requests. If a parsed location is already written to the database,
 // we proxy the prometheus request to the database.
 func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// handle auth
-	if !Auth(req.Header.Get("Authorization"), s.AuthToken) {
+	if s.RequireAuth && !Auth(req.Header.Get("Authorization"), s.AuthToken) {
 		resp.Header().Set("WWW-Authenticate", `Basic realm="ForecastMetrics", charset="UTF-8"`)
 		resp.WriteHeader(http.StatusUnauthorized)
 		return

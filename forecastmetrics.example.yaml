@@ -23,6 +23,10 @@ server:
   # port to run http server on for adhoc forecasts
   # set to 0 to disable the http server.
   port: 8080
+  # or a unix socket to listen on instead of port, e.g. behind a reverse proxy.
+  # requests on the socket skip the auth check; the socket's file permissions
+  # (from the process umask) decide who can connect. cert_file and key_file are ignored.
+  # socket: /run/forecastmetrics/forecastmetrics.sock
   # certificate for serving TLS. Leave blank/remove to disable TLS.
   cert_file: /path/to/cert.pem
   # certificate private key for serving TLS. Leave blank/remove to disable TLS.
