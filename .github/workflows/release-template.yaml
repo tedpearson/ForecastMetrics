@@ -11,8 +11,24 @@ on:
         type: string
 
 jobs:
+  # create the release once, before the builds. when each build job created it,
+  # two could race and the loser failed with 422 already_exists, cancelling the rest.
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or update release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          tag: ${{ github.ref_name }}
+          commit: ${{inputs.ref}}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          omitBodyDuringUpdate: true
+
   build:
     name: Build
+    needs: release
     strategy:
       matrix:
         GOOS: [ linux, darwin ]
@@ -57,7 +73,7 @@ jobs:
           LDFLAGS="$LDFLAGS -X 'main.buildDate=$DATE'"
           env GOOS=${{matrix.GOOS}} GOARCH=${{matrix.GOARCH}} go build -ldflags "$LDFLAGS" -v -o ${{env.executable}} .
 
-      - name: Create or update release
+      - name: Upload to release
         id: create_release
         uses: ncipollo/release-action@v1
         with:
